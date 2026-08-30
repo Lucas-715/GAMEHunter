@@ -24,6 +24,7 @@ export async function GET() {
     }
 
     let allGames: GameItem[] = [];
+    let dbError: any = null;
 
     // First try to find games that ALREADY have prices in the DB
     try {
@@ -48,7 +49,8 @@ export async function GET() {
           }
         }
       }
-    } catch (e) {
+    } catch (e: any) {
+      dbError = e;
       console.warn("Failed to fetch games with prices from DB:", e);
     }
 
@@ -83,10 +85,15 @@ export async function GET() {
               }
             }
           }
-        } catch (e) {
+        } catch (e: any) {
+          dbError = e;
           console.warn("Error seeding title", title, e);
         }
       }
+    }
+
+    if (allGames.length === 0 && dbError) {
+      throw new Error(`O Banco de Dados falhou: ${dbError.message || String(dbError)}`);
     }
 
     // We can slice deals into 'featured' and 'opportunities'
