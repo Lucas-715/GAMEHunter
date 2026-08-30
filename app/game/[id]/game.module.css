@@ -1,0 +1,107 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.meta {
+  color: var(--text-secondary);
+  display: flex;
+  gap: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+}
+
+.scoreCard {
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  border-top: 4px solid var(--accent-primary);
+}
+
+.scoreValue {
+  font-size: 4rem;
+  font-weight: 800;
+  color: var(--accent-primary);
+  line-height: 1;
+  margin-bottom: 1rem;
+}
+
+.scoreRecommendation {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.scoreDetails {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.section {
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.priceTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.priceTable th,
+.priceTable td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.priceTable th {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.storeName {
+  font-weight: 600;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.chartContainer {
+  height: 300px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
