@@ -18,6 +18,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectGame,
   onClaimFreeGame,
   onQuickBuy,
+  isLoading,
+  errorMsg,
 }) => {
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [sortCriteria, setSortCriteria] = useState<'score' | 'price' | 'discount'>('score');
@@ -53,6 +55,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
     return 0; // Simplified discount sort
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-8 h-8 animate-spin rounded-full border-b-2 border-primary" />
+        <p className="text-muted-foreground animate-pulse">Carregando as melhores ofertas...</p>
+      </div>
+    )
+  }
+
+  if (errorMsg) {
+    return <div className="p-8 text-center text-red-500 font-bold whitespace-pre-wrap">Erro na API: {errorMsg}</div>
+  }
 
   if (!activeHero) return <div className="p-8 text-center text-muted-foreground">Nenhum jogo encontrado.</div>;
 

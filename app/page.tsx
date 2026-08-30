@@ -27,6 +27,7 @@ export default function Home() {
   const [dashboardGames, setDashboardGames] = useState<GameItem[]>([]);
   const [searchResults, setSearchResults] = useState<GameItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Fetch Dashboard Data
   useEffect(() => {
@@ -36,6 +37,10 @@ export default function Home() {
         const res = await fetch('/api/games/dashboard');
         const data = await res.json();
         
+        if (data.error) {
+          setErrorMsg(data.error);
+        }
+
         // As featured e opportunities vêm da API já mapeadas para GameItem
         let combined: any[] = [];
         if (data.featured) combined = [...combined, ...data.featured];
@@ -146,22 +151,20 @@ export default function Home() {
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
         {currentView === 'dashboard' && (
-          isLoading ? (
-            <div className="flex justify-center py-20 text-muted-foreground animate-pulse">Carregando jogos...</div>
-          ) : (
-            <DashboardView 
-              games={dashboardGames}
-              freeGames={mockFreeGames}
-              onSelectGame={handleSelectGame}
-              onClaimFreeGame={(id) => {
-                const game = mockFreeGames.find(g => g.id === id);
-                if (game && game.claimUrl) {
-                  window.open(game.claimUrl, '_blank');
-                }
-              }}
-              onQuickBuy={(game) => console.log('Buy', game.name)}
-            />
-          )
+          <DashboardView 
+            games={dashboardGames}
+            freeGames={mockFreeGames}
+            onSelectGame={handleSelectGame}
+            onClaimFreeGame={(id) => {
+              const game = mockFreeGames.find(g => g.id === id);
+              if (game && game.claimUrl) {
+                window.open(game.claimUrl, '_blank');
+              }
+            }}
+            onQuickBuy={(game) => console.log('Buy', game.name)}
+            isLoading={isLoading}
+            errorMsg={errorMsg}
+          />
         )}
 
         {currentView === 'search' && (

@@ -139,8 +139,8 @@ export async function GET() {
     }
 
     return NextResponse.json(responseData);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Dashboard API Error:", error)
-    return NextResponse.json({ featured: [], opportunities: [] }, { status: 500 })
+    return NextResponse.json({ featured: [], opportunities: [], error: error.message || String(error) }, { status: 500 })
   }
 }
