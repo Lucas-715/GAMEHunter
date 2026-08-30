@@ -54,7 +54,15 @@ export async function GET() {
     if (allGames.length < 3) {
       const popularTitles = ['Cyberpunk 2077', 'Elden Ring', 'Red Dead Redemption 2', 'Grand Theft Auto V', 'The Witcher 3'];
       
-      const seedPromises = popularTitles.map(async (title) => {
+      // We will seed sequentially to respect Vercel 10s timeout
+      const startTime = Date.now();
+      for (const title of popularTitles) {
+        if (allGames.length >= 3) break; // We just need enough for the carousel
+        if (Date.now() - startTime > 5000) {
+          console.warn("Approaching serverless timeout, breaking seed loop");
+          break; 
+        }
+
         try {
           const results = await searchEngine.searchGames(title);
           if (results.games.length > 0) {
@@ -62,30 +70,18 @@ export async function GET() {
             if (!game) game = results.games[0];
             
             if (game) {
-              // Force scraping if no stores exist yet (since searchGames now only reads DB)
               if (!game.stores || game.stores.length === 0) {
                 const detailedGame = await searchEngine.getGameDetails(game.id);
                 if (detailedGame && detailedGame.stores && detailedGame.stores.length > 0) {
-                  return detailedGame;
+                  allGames.push(detailedGame);
                 }
               } else {
-                return game;
+                allGames.push(game);
               }
             }
           }
         } catch (e) {
           console.warn("Error seeding title", title, e);
-        }
-        return null;
-      });
-
-      // Run sequentially to avoid rate limits or timeouts, or Promise.all. 
-      // We will do a Promise.all but for Vercel Hobby it might timeout if it takes >10s.
-      // Let's do Promise.all, we decoupled search anyway.
-      const seededGames = await Promise.all(seedPromises);
-      for (const g of seededGames) {
-        if (g && !allGames.find(ag => ag.id === g.id)) {
-          allGames.push(g);
         }
       }
     }

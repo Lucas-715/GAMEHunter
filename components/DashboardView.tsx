@@ -22,8 +22,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [sortCriteria, setSortCriteria] = useState<'score' | 'price' | 'discount'>('score');
 
-  // Featured games for the top carousel
-  const featuredGames = games.filter((g) => g.bannerImage && g.stores.length > 0);
+  // Featured games for the top carousel (must have stores, fallback to coverImageUrl if bannerImage missing)
+  const featuredGames = games.filter((g) => (g.bannerImage || g.coverImageUrl) && g.stores.length > 0);
   const activeHero = featuredGames[currentHeroIndex] || games[0];
 
   const handleNextHero = () => {
