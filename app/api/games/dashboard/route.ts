@@ -7,9 +7,13 @@ export async function GET() {
   const cacheKey = 'dashboard_deals_v4'
   
   try {
-    const cached = await prisma.searchCache.findUnique({ where: { key: cacheKey } })
-    if (cached && cached.expiresAt > new Date()) {
-      return NextResponse.json(JSON.parse(cached.data))
+    try {
+      const cached = await prisma.searchCache.findUnique({ where: { key: cacheKey } })
+      if (cached && cached.expiresAt > new Date()) {
+        return NextResponse.json(JSON.parse(cached.data))
+      }
+    } catch (cacheErr) {
+      console.warn("Failed to read from cache (Prisma error?):", cacheErr);
     }
 
     // Temporary list of popular games to show on dashboard

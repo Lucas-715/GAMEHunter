@@ -18,14 +18,19 @@ class SearchEngine {
   }
 
   async searchGames(query: string) {
-    const localGames = await prisma.game.findMany({
-      where: {
-        name: {
-          contains: query,
-        }
-      },
-      take: 10
-    });
+    let localGames: any[] = [];
+    try {
+      localGames = await prisma.game.findMany({
+        where: {
+          name: {
+            contains: query,
+          }
+        },
+        take: 10
+      });
+    } catch (e) {
+      console.warn("Prisma findMany failed:", e);
+    }
 
     const steamAdapter = this.adapters.find(a => a.storeId === 'steam') as SteamAdapter;
     
@@ -46,17 +51,29 @@ class SearchEngine {
     for (const result of steamResults.slice(0, 8)) {
       if (!result.storeInternalId) continue;
       
-      const game = await prisma.game.upsert({
-        where: { steamAppId: result.storeInternalId },
-        update: {
-          name: result.title, // In case steam has a better formatted name
-        },
-        create: {
-          name: result.title,
-          steamAppId: result.storeInternalId,
-          slug: result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      let game = searchResultsMap.get(result.title.toLowerCase());
+      try {
+        game = await prisma.game.upsert({
+          where: { steamAppId: result.storeInternalId },
+          update: {
+            name: result.title, // In case steam has a better formatted name
+          },
+          create: {
+            name: result.title,
+            steamAppId: result.storeInternalId,
+            slug: result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          }
+        });
+      } catch (e) {
+        console.warn("Prisma upsert failed, using memory fallback:", e);
+        if (!game) {
+          game = {
+            id: result.storeInternalId,
+            name: result.title,
+            steamAppId: result.storeInternalId,
+          }
         }
-      });
+      }
       searchResultsMap.set(game.name.toLowerCase(), game);
     }
 
