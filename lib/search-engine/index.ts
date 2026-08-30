@@ -1,22 +1,8 @@
-import { StoreAdapter } from './types';
-import { SteamAdapter } from './adapters/steam';
-import { GogAdapter } from './adapters/gog';
-import { NuuvemAdapter } from './adapters/nuuvem';
-import { InstantGamingAdapter } from './adapters/instant_gaming';
-import { matchGameTitle } from './matcher';
 import { prisma } from '@/lib/prisma';
 import { GameItem } from '@/lib/types';
+import { priceAggregator } from '../prices/price-aggregator';
 
 class SearchEngine {
-  private adapters: StoreAdapter[] = [];
-
-  constructor() {
-    this.adapters.push(new SteamAdapter());
-    this.adapters.push(new GogAdapter());
-    this.adapters.push(new NuuvemAdapter());
-    this.adapters.push(new InstantGamingAdapter());
-  }
-
   async searchGames(query: string) {
     let localGames: any[] = [];
     try {
@@ -32,12 +18,26 @@ class SearchEngine {
       console.warn("Prisma findMany failed:", e);
     }
 
-    const steamAdapter = this.adapters.find(a => a.storeId === 'steam') as SteamAdapter;
-    
-    // Always query Steam to ensure we don't miss games or leave local games without a steamAppId
+    // Since we decoupled adapters, we will just query Steam API directly here for the search feature 
+    // to discover new games that aren't in our local DB yet. 
+    // We can do a quick fetch to Steam just for discovery.
     let steamResults: any[] = [];
-    if (steamAdapter) {
-      steamResults = await steamAdapter.searchByTitle(query);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const steamSearch = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=BR`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (steamSearch.ok) {
+        const data = await steamSearch.json();
+        if (data && data.items) {
+          steamResults = data.items.map((item: any) => ({
+            title: item.name,
+            storeInternalId: item.id.toString(),
+          }));
+        }
+      }
+    } catch (e) {
+      console.error("Steam search discovery failed:", e);
     }
     
     const searchResultsMap = new Map();
@@ -102,105 +102,19 @@ class SearchEngine {
   }
 
   private async enrichGame(game: any): Promise<GameItem> {
-    let coverImageUrl = game.coverImageUrl;
-    let isFree = game.isFree;
-    const stores: any[] = [];
+    const aggregation = await priceAggregator.aggregatePrices(game.name, game.steamAppId);
     
-    const steamAdapter = this.adapters.find(a => a.storeId === 'steam') as SteamAdapter;
-    const gogAdapter = this.adapters.find(a => a.storeId === 'gog') as GogAdapter;
-    const nuuvemAdapter = this.adapters.find(a => a.storeId === 'nuuvem') as NuuvemAdapter;
-    const igAdapter = this.adapters.find(a => a.storeId === 'instantgaming') as InstantGamingAdapter;
-
-    if (game.steamAppId && steamAdapter) {
-      const steamDetails = await steamAdapter.getFullAppDetails(game.steamAppId);
-      if (steamDetails) {
-        coverImageUrl = steamDetails.header_image || coverImageUrl;
-        isFree = steamDetails.is_free || false;
-        
-        if (isFree) {
-          stores.push({
-            id: steamAdapter.storeId,
-            name: steamAdapter.storeName,
-            price: 0,
-            url: `https://store.steampowered.com/app/${game.steamAppId}`,
-            isOfficial: true
-          });
-        } else if (steamDetails.price_overview) {
-            stores.push({
-            id: steamAdapter.storeId,
-            name: steamAdapter.storeName,
-            price: steamDetails.price_overview.final / 100,
-            url: `https://store.steampowered.com/app/${game.steamAppId}`,
-            isOfficial: true
-          });
-        }
-      }
-    }
-
-    // Attempt to enrich with GOG
-    if (gogAdapter) {
-      const gogResults = await gogAdapter.searchByTitle(game.name);
-      // Try to find an exact or very close title match using the matcher
-      if (gogResults.length > 0) {
-        const candidateTitles = gogResults.map(r => r.title);
-        const match = matchGameTitle(game.name, candidateTitles);
-        
-        if (match) {
-          const matchedGog = gogResults.find(r => r.title === match.bestMatch);
-          if (matchedGog) {
-            stores.push({
-              id: gogAdapter.storeId,
-              name: gogAdapter.storeName,
-              price: matchedGog.price,
-              url: matchedGog.url,
-              isOfficial: gogAdapter.isOfficial
-            });
-          }
-        }
-      }
-    }
-
-    // Attempt to enrich with Nuuvem
-    if (nuuvemAdapter) {
-      const nuuvemResults = await nuuvemAdapter.searchByTitle(game.name);
-      if (nuuvemResults.length > 0) {
-        stores.push({
-          id: nuuvemAdapter.storeId,
-          name: nuuvemAdapter.storeName,
-          price: nuuvemResults[0].price,
-          url: nuuvemResults[0].url,
-          isOfficial: nuuvemAdapter.isOfficial
-        });
-      }
-    }
-
-    // Attempt to enrich with Instant Gaming
-    if (igAdapter) {
-      const igResults = await igAdapter.searchByTitle(game.name);
-      if (igResults.length > 0) {
-        stores.push({
-          id: igAdapter.storeId,
-          name: igAdapter.storeName,
-          price: igResults[0].price,
-          url: igResults[0].url,
-          isOfficial: igAdapter.isOfficial
-        });
-      }
-    }
-
-    stores.sort((a, b) => a.price - b.price);
-
     return {
       id: game.id,
       steamAppId: game.steamAppId,
       name: game.name,
-      coverImageUrl: coverImageUrl || 'https://placehold.co/600x400/1a1a1a/ffffff?text=Sem+Imagem',
-      isFree: isFree,
+      coverImageUrl: aggregation.coverImageUrl || game.coverImageUrl || 'https://placehold.co/600x400/1a1a1a/ffffff?text=Sem+Imagem',
+      isFree: aggregation.isFree,
       priceHistory: [], // Populated by cron later
-      allTimeLow: stores.length > 0 ? { price: Math.min(...stores.map(s => s.price)), date: new Date().toISOString() } : { price: 0, date: new Date().toISOString() },
-      stores: stores,
-      tags: isFree ? ['Free to Play'] : [],
-      opportunityScore: isFree ? 100 : 0
+      allTimeLow: aggregation.stores.length > 0 ? { price: Math.min(...aggregation.stores.map(s => s.price)), date: new Date().toISOString() } : { price: 0, date: new Date().toISOString() },
+      stores: aggregation.stores,
+      tags: aggregation.isFree ? ['Free to Play'] : [],
+      opportunityScore: aggregation.isFree ? 100 : 0
     };
   }
 }

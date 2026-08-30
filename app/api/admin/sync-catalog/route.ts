@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { normalizeTitle } from '@/lib/search-engine/matcher';
+import { normalizeTitle } from '@/lib/prices/matcher';
 
 /**
  * Route to synchronize the base catalog of games from Steam API.
