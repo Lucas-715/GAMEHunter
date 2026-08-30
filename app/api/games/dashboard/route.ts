@@ -4,8 +4,10 @@ import { rawg } from '@/lib/rawg'
 import { prisma } from '@/lib/prisma'
 import { GameItem } from '@/lib/types'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
-  const cacheKey = 'dashboard_deals_v5'
+  const cacheKey = 'dashboard_deals_v6'
   
   try {
     try {
@@ -50,15 +52,16 @@ export async function GET() {
       console.warn("Failed to fetch games with prices from DB:", e);
     }
 
-    // If still empty (new DB, migrated DB, etc), seed the popular titles
+    // If still empty (new DB, migrated DB, etc), seed ONLY 1 or 2 games safely
     if (allGames.length < 3) {
       const popularTitles = ['Cyberpunk 2077', 'Elden Ring', 'Red Dead Redemption 2', 'Grand Theft Auto V', 'The Witcher 3'];
       
-      // We will seed sequentially to respect Vercel 10s timeout
       const startTime = Date.now();
       for (const title of popularTitles) {
-        if (allGames.length >= 3) break; // We just need enough for the carousel
-        if (Date.now() - startTime > 5000) {
+        if (allGames.length >= 3) break; 
+        
+        // STRICT 7-second limit to avoid Vercel Hobby 10s timeout (leaving 3s for RAWG and response)
+        if (Date.now() - startTime > 7000) {
           console.warn("Approaching serverless timeout, breaking seed loop");
           break; 
         }
