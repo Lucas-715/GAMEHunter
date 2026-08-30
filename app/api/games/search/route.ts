@@ -1,32 +1,29 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import { searchEngine } from '@/lib/search-engine';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q')
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const query = url.searchParams.get('q');
+    
+    if (!query) {
+      return NextResponse.json({ games: [] });
+    }
 
-  if (!query) {
-    return NextResponse.json({ games: [] })
-  }
+    const results = await searchEngine.searchGames(query);
 
-  // SQLite doesn't natively support case-insensitive contains in Prisma standard way,
-  // but for the MVP this basic search will suffice.
-  const games = await prisma.game.findMany({
-    where: {
-      name: {
-        contains: query,
-      },
-    },
-    include: {
-      priceHistory: {
-        orderBy: {
-          collectionDate: 'desc'
-        },
-        take: 3
+    return NextResponse.json(results, {
+      status: 200,
+      headers: {
+        'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
       }
-    },
-    take: 10
-  })
+    });
 
-  return NextResponse.json({ games })
+  } catch (error) {
+    console.error('Search API Error:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error', games: [] },
+      { status: 500 }
+    );
+  }
 }

@@ -1,226 +1,215 @@
-'use client'
+'use client';
+import React, { useState, useEffect } from 'react';
+import { Navbar } from '@/components/Navbar';
+import { DashboardView } from '@/components/DashboardView';
+import { SearchResultsView } from '@/components/SearchResultsView';
+import { GameDetailView } from '@/components/GameDetailView';
+import { WishlistAlertsView } from '@/components/WishlistAlertsView';
+import { Footer } from '@/components/Footer';
 
-import { useState, useEffect, useMemo } from 'react'
-import Link from 'next/link'
-import styles from './page.module.css'
+// Modals
+import { ProfileModal } from '@/components/ProfileModal';
+import { NotificationModal } from '@/components/NotificationModal';
+import { NewAlertModal } from '@/components/NewAlertModal';
+import { SavingsModal } from '@/components/SavingsModal';
+import { SteamImportModal } from '@/components/SteamImportModal';
 
-// Dados Mockados para o Dashboard
-const MOCK_FEATURED = [
-  { id: 1, title: 'Elden Ring', type: 'Destaque', discount: '-40%', price: 'R$ 149,90' },
-  { id: 2, title: 'Cyberpunk 2077', type: 'Destaque', discount: '-50%', price: 'R$ 99,90' },
-  { id: 3, title: 'Red Dead Redemption 2', type: 'Destaque', discount: '-67%', price: 'R$ 79,90' },
-]
-
-const MOCK_FREE = [
-  { id: 'f1', title: 'Epic Games: Jogo Misterioso', expiry: 'Expira em 2 dias' },
-  { id: 'f2', title: 'Steam: Fim de Semana Grátis', expiry: 'Expira em 1 dia' },
-]
-
-const MOCK_OPPORTUNITIES = [
-  { id: 1, name: 'Hollow Knight', score: 95, discount: 50, price: 13.99 },
-  { id: 2, name: 'The Witcher 3', score: 88, discount: 75, price: 19.99 },
-  { id: 3, name: 'Stardew Valley', score: 92, discount: 40, price: 14.99 },
-]
+// Mock Data (temporary for missing features)
+import { mockFreeGames, mockNotifications, mockAlerts } from '@/lib/gamesData';
+import { GameItem } from '@/lib/types';
 
 export default function Home() {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'score', direction: 'desc' })
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'search', 'game-detail', 'wishlist'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGame, setSelectedGame] = useState<GameItem | null>(null);
 
+  // API State
+  const [dashboardGames, setDashboardGames] = useState<GameItem[]>([]);
+  const [searchResults, setSearchResults] = useState<GameItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch Dashboard Data
   useEffect(() => {
-    if (query.trim().length === 0) {
-      setResults([])
-      return
-    }
-
-    const timer = setTimeout(async () => {
-      setLoading(true)
+    const fetchDashboard = async () => {
       try {
-        const res = await fetch(`/api/games/search?q=${encodeURIComponent(query)}`)
-        const data = await res.json()
-        setResults(data.games || [])
-      } catch (e) {
-        console.error(e)
+        setIsLoading(true);
+        const res = await fetch('/api/games/dashboard');
+        const data = await res.json();
+        
+        // As featured e opportunities vêm da API já mapeadas para GameItem
+        let combined: any[] = [];
+        if (data.featured) combined = [...combined, ...data.featured];
+        if (data.opportunities) combined = [...combined, ...data.opportunities];
+        if (data.games) combined = [...data.games]; // Caso a API retorne 'games'
+        
+        // Remove duplicates by ID
+        const uniqueGames = Array.from(new Map(combined.map(item => [item.id, item])).values()) as GameItem[];
+        setDashboardGames(uniqueGames);
+      } catch (err) {
+        console.error("Failed to load dashboard", err);
       } finally {
-        setLoading(false)
+        setIsLoading(false);
       }
-    }, 300)
+    };
+    fetchDashboard();
+  }, []);
 
-    return () => clearTimeout(timer)
-  }, [query])
+  // Modals state
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isNewAlertOpen, setIsNewAlertOpen] = useState(false);
+  const [isSavingsOpen, setIsSavingsOpen] = useState(false);
+  const [isSteamImportOpen, setIsSteamImportOpen] = useState(false);
 
-  const sortedOpportunities = useMemo(() => {
-    let sortableItems = [...MOCK_OPPORTUNITIES];
-    sortableItems.sort((a: any, b: any) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+  // Notifications State
+  const [notifications, setNotifications] = useState(mockNotifications);
+
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Debounce the search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch when debounced query changes
+  useEffect(() => {
+    const fetchSearch = async () => {
+      if (debouncedQuery.trim().length > 0) {
+        try {
+          const res = await fetch(`/api/games/search?q=${encodeURIComponent(debouncedQuery)}`);
+          const data = await res.json();
+          setSearchResults(data.games || []);
+        } catch (err) {
+          console.error("Search failed", err);
+        }
       }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-    return sortableItems;
-  }, [sortConfig]);
+    };
+    fetchSearch();
+  }, [debouncedQuery]);
 
-  const requestSort = (key: string) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+  // Handlers
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim().length > 0) {
+      setCurrentView('search');
+    } else {
+      setCurrentView('dashboard');
     }
-    setSortConfig({ key, direction });
-  }
+  };
+
+  const handleSelectGame = (gameId: string) => {
+    // Find game in dashboard, search, or mock
+    const game = dashboardGames.find(g => g.id === gameId) || searchResults.find(g => g.id === gameId);
+    
+    // We always want to fetch fresh full details from /api/games/[id] 
+    // because dashboard/search only have 1 store and no full priceHistory
+    fetch(`/api/games/${gameId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.game) {
+          setSelectedGame(data.game);
+          setCurrentView('game-detail');
+        } else if (game) {
+          // Fallback to basic info if details fetch fails but we have it locally
+          setSelectedGame(game);
+          setCurrentView('game-detail');
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load game details", err);
+        if (game) {
+          setSelectedGame(game);
+          setCurrentView('game-detail');
+        }
+      });
+  };
+
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   return (
-    <main className={styles.main}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem' }}>
-        <h2 className={styles.title} style={{ fontSize: '1.5rem', margin: 0 }}>Game<span className={styles.accent}>Hunter</span></h2>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Link href="/wishlist" className="btn-primary" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', textDecoration: 'none' }}>
-            Monitoramento
-          </Link>
-          <button className="btn-primary" aria-label="Avaliar positivamente" title="Gostei">👍</button>
-          <button className="btn-primary" style={{ background: 'var(--danger)' }} aria-label="Avaliar negativamente" title="Não gostei">👎</button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
+      
+      <Navbar 
+        currentView={currentView}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          if (view !== 'search') setSearchQuery('');
+        }}
+        onSearch={handleSearch}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        unreadNotifications={unreadNotificationsCount}
+      />
 
-      <div className={styles.hero} style={{ paddingTop: '2rem' }}>
-        <h1 className={styles.title}>Encontre o momento <span className={styles.accent}>perfeito</span></h1>
-        <p className={styles.subtitle}>Pesquise jogos e descubra se é a hora certa de comprar.</p>
-        
-        <div className={styles.searchContainer}>
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Buscar por jogo (ex: Cyberpunk 2077)..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {loading && <div className={styles.loader}></div>}
-        </div>
-
-        {results.length > 0 && (
-          <div className={styles.resultsContainer}>
-            <aside className={styles.resultsSidebar} aria-label="Filtros de busca">
-              <h3 style={{ marginBottom: '1.5rem', fontFamily: 'var(--font-sora)' }}>Filtros</h3>
-              
-              <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>Lojas</div>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" defaultChecked /> Steam
-                </label>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" defaultChecked /> Nuuvem
-                </label>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" defaultChecked /> Epic Games
-                </label>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>Edição</div>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" defaultChecked /> Jogo Base
-                </label>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" /> Premium / Deluxe
-                </label>
-                <label className={styles.filterLabel}>
-                  <input type="checkbox" /> DLCs
-                </label>
-              </div>
-            </aside>
-
-            <div className={styles.resultsList}>
-              {results.map(game => (
-                <Link href={`/game/${game.id}`} key={game.id} className={styles.resultItem}>
-                  <div style={{ textAlign: 'left' }}>
-                    <h3 className={styles.gameTitle}>{game.name} <span style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', marginLeft: '0.5rem', padding: '0.1rem 0.4rem', border: '1px solid var(--accent-primary)', borderRadius: '12px' }}>Jogo Base</span></h3>
-                    <span className={styles.publisher}>{game.publisher}</span>
-                  </div>
-                  <div className={styles.gameAction}>
-                    Ver Ofertas →
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
+        {currentView === 'dashboard' && (
+          isLoading ? (
+            <div className="flex justify-center py-20 text-muted-foreground animate-pulse">Carregando jogos...</div>
+          ) : (
+            <DashboardView 
+              games={dashboardGames}
+              freeGames={mockFreeGames}
+              onSelectGame={handleSelectGame}
+              onClaimFreeGame={(id) => {
+                const game = mockFreeGames.find(g => g.id === id);
+                if (game && game.claimUrl) {
+                  window.open(game.claimUrl, '_blank');
+                }
+              }}
+              onQuickBuy={(game) => console.log('Buy', game.name)}
+            />
+          )
         )}
-      </div>
 
-      {!query && (
-        <>
-          <section>
-            <h2 className={styles.sectionTitle}>Ofertas em Destaque</h2>
-            <div className={styles.carousel} aria-label="Carrossel de ofertas em destaque" tabIndex={0}>
-              {MOCK_FEATURED.map(item => (
-                <div key={item.id} className={`${styles.card} ${styles.cardFeatured}`}>
-                  <span className={styles.badge}>{item.discount}</span>
-                  <h3 className={styles.cardTitle}>{item.title}</h3>
-                  <p style={{ color: 'var(--text-secondary)' }}>A partir de <strong>{item.price}</strong></p>
-                  <button className="btn-primary" style={{ width: 'fit-content' }}>Ver Oportunidade</button>
-                </div>
-              ))}
-            </div>
-          </section>
+        {currentView === 'search' && (
+          <SearchResultsView 
+            query={searchQuery}
+            games={searchResults}
+            onSelectGame={handleSelectGame}
+          />
+        )}
 
-          <section>
-            <h2 className={styles.sectionTitle}>Jogos Grátis e Resgates</h2>
-            <div className={styles.freeGamesGrid}>
-              {MOCK_FREE.map(item => (
-                <div key={item.id} className={styles.freeGameCard}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--accent-primary)' }}>{item.title}</h3>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.expiry}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+        {currentView === 'game-detail' && selectedGame && (
+          <GameDetailView 
+            game={selectedGame}
+            onBack={() => setCurrentView(searchQuery ? 'search' : 'dashboard')}
+          />
+        )}
 
-          <section>
-            <h2 className={styles.sectionTitle}>Melhores Oportunidades do Dia</h2>
-            <div className={`${styles.tableContainer} glass-panel`}>
-              <table className={styles.oppTable}>
-                <thead>
-                  <tr>
-                    <th onClick={() => requestSort('name')} aria-sort={sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                      Jogo {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                    <th onClick={() => requestSort('score')} aria-sort={sortConfig.key === 'score' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                      Score {sortConfig.key === 'score' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                    <th onClick={() => requestSort('discount')} aria-sort={sortConfig.key === 'discount' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                      Desconto {sortConfig.key === 'discount' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                    <th onClick={() => requestSort('price')} aria-sort={sortConfig.key === 'price' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                      Preço (R$) {sortConfig.key === 'price' ? (sortConfig.direction === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedOpportunities.map(opp => (
-                    <tr key={opp.id}>
-                      <td style={{ fontWeight: 600 }}>{opp.name}</td>
-                      <td>
-                        <span style={{ 
-                          padding: '0.2rem 0.5rem', 
-                          borderRadius: '4px', 
-                          background: opp.score >= 90 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 179, 8, 0.2)',
-                          color: opp.score >= 90 ? 'var(--success)' : 'var(--warning)'
-                        }}>
-                          {opp.score}
-                        </span>
-                      </td>
-                      <td className={styles.discount}>-{opp.discount}%</td>
-                      <td>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(opp.price)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      )}
-    </main>
-  )
+        {currentView === 'wishlist' && (
+          <WishlistAlertsView 
+            alerts={mockAlerts}
+            onNewAlert={() => setIsNewAlertOpen(true)}
+            onImportSteam={() => setIsSteamImportOpen(true)}
+          />
+        )}
+      </main>
+
+      <Footer />
+
+      {/* Modals */}
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <NotificationModal 
+        isOpen={isNotificationsOpen} 
+        onClose={() => setIsNotificationsOpen(false)} 
+        notifications={notifications} 
+        onMarkAllAsRead={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+        onClearAll={() => setNotifications([])}
+        onDelete={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
+      />
+      <NewAlertModal isOpen={isNewAlertOpen} onClose={() => setIsNewAlertOpen(false)} />
+      <SavingsModal isOpen={isSavingsOpen} onClose={() => setIsSavingsOpen(false)} />
+      <SteamImportModal isOpen={isSteamImportOpen} onClose={() => setIsSteamImportOpen(false)} />
+      
+      {/* Easter Egg / Quick trigger for savings modal for demo purposes */}
+      <button 
+        onClick={() => setIsSavingsOpen(true)}
+        className="fixed bottom-4 right-4 w-10 h-10 bg-success/20 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+        aria-label="Ver Economia"
+      />
+    </div>
+  );
 }

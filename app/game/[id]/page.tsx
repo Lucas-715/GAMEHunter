@@ -4,15 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './game.module.css'
+import Image from 'next/image'
+import { Star, LayoutGrid, ThumbsUp, ThumbsDown, Filter, Bell, Heart } from 'lucide-react'
 
 export default function GameDetails() {
   const params = useParams()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false)
   const [chartPeriod, setChartPeriod] = useState('90')
-  const [chatMessage, setChatMessage] = useState('')
-  const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -29,178 +28,178 @@ export default function GameDetails() {
     fetchData()
   }, [params.id])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isAlertModalOpen) {
-        setIsAlertModalOpen(false)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isAlertModalOpen])
+  if (loading) return <div className={styles.loaderContainer}>Carregando...</div>
+  if (!data || data.error) return <div className={styles.loaderContainer}>Jogo não encontrado.</div>
 
-  useEffect(() => {
-    if (isAlertModalOpen && modalRef.current) {
-      modalRef.current.focus()
-    }
-  }, [isAlertModalOpen])
+  const { game, currentPrices, opportunityScore, allTimeLow } = data
 
-  if (loading) return <div className={styles.container} role="status" aria-live="polite">Carregando...</div>
-  if (!data || data.error) return <div className={styles.container} role="alert">Jogo não encontrado.</div>
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'var(--success)';
+    if (score >= 50) return '#EAB308';
+    return 'var(--text-secondary)';
+  }
 
-  const { game, currentPrices, allTimeLow, average90Days, opportunityScore } = data
+  const scoreColor = getScoreColor(opportunityScore.score);
+  const minPrice = allTimeLow?.price || currentPrices[0]?.price || 0;
+  const maxPrice = Math.max(...currentPrices.map((p: any) => p.price), minPrice * 1.5);
+  const isHistoricalLow = currentPrices[0] && currentPrices[0].price <= minPrice && opportunityScore.score >= 80;
+
+  const getPlatformType = (storeName: string) => {
+    if (storeName === 'Steam' || storeName === 'Epic Games') return 'Direto';
+    if (storeName === 'GOG') return 'DRM-free';
+    return 'Steam Key';
+  };
 
   return (
-    <main className={styles.container}>
-      <Link href="/" style={{ color: 'var(--text-secondary)', marginBottom: '2rem', display: 'inline-block' }} aria-label="Voltar para busca">
-        ← Voltar para busca
-      </Link>
-      
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>{game.name}</h1>
-          <div className={styles.meta}>
-            <span>{game.publisher}</span>
-            <span>•</span>
-            <span>{game.category}</span>
+    <main className={styles.main}>
+      <header className={styles.heroSection}>
+        <Image 
+          src={game.coverImageUrl || '/fantasy_bg_1788053423242.jpg'} 
+          alt={game.name} 
+          fill 
+          style={{ objectFit: 'cover', zIndex: 0 }} 
+          priority
+        />
+        <div className={styles.heroOverlay}></div>
+        
+        <div className={styles.heroTopActions}>
+          <button className={styles.iconBtn} aria-label="Favoritos"><Star size={20} /></button>
+          <button className={styles.iconBtn} aria-label="Comparar"><LayoutGrid size={20} /></button>
+          <button className={styles.iconBtn} aria-label="Like"><ThumbsUp size={20} /></button>
+          <button className={styles.iconBtn} aria-label="Dislike"><ThumbsDown size={20} /></button>
+        </div>
+
+        <div className={styles.heroContent}>
+          <h1 className={styles.heroTitle}>{game.name}</h1>
+          <div className={styles.heroMeta}>
+            <span className={styles.metaBadge}>{game.category || 'Action RPG'}</span>
+            <span className={styles.metaBadge}>{game.publisher || 'Bandai Namco'}</span>
+            <span className={styles.metaBadge} style={{ color: '#EAB308', borderColor: 'rgba(234, 179, 8, 0.3)' }}>⭐ 96 Metacritic</span>
           </div>
-          <div className={styles.feedbackContainer}>
-            <button aria-label="Avaliar positivamente" title="Boa oportunidade" className={styles.feedbackBtn}>👍</button>
-            <button aria-label="Avaliar negativamente" title="Oportunidade ruim" className={styles.feedbackBtn}>👎</button>
+        </div>
+
+        <div className={styles.heroScoreCard} style={{ borderColor: scoreColor }}>
+          <div className={styles.heroScoreValue} style={{ color: scoreColor }}>{opportunityScore.score}</div>
+          <div className={styles.heroScoreDetails}>
+            <div className={styles.heroScoreRec} style={{ color: scoreColor }}>{opportunityScore.recommendation}</div>
+            {isHistoricalLow && <div className={styles.heroScoreSub}>HISTORICAL LOW</div>}
           </div>
         </div>
       </header>
 
-      <div className={styles.grid}>
+      <div className={styles.gridContainer}>
         <div className={styles.mainContent}>
-          <section className={`${styles.section} glass-panel`}>
-            <h2 className={styles.sectionTitle}>Comparação de Preços Atual</h2>
-            <table className={styles.priceTable}>
-              <thead>
-                <tr>
-                  <th>Loja</th>
-                  <th>Preço Atual</th>
-                  <th>Região</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentPrices.map((p: any) => (
-                  <tr key={p.id}>
-                    <td className={styles.storeName}>{p.store.name}</td>
-                    <td className={styles.price}>
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: p.currency }).format(p.price)}
-                    </td>
-                    <td>{p.region}</td>
-                    <td>
-                      <button className="btn-primary" aria-label={`Comprar ${game.name} na loja ${p.store.name}`} title="Ir para loja">Comprar</button>
-                    </td>
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Comparador de Preços</h2>
+              <button className={styles.filterBtn} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Filter size={16} /> Filtros
+              </button>
+            </div>
+            
+            <div className={styles.tableContainer}>
+              <table className={styles.priceTable}>
+                <thead>
+                  <tr>
+                    <th>LOJA</th>
+                    <th>EDIÇÃO</th>
+                    <th>PLATAFORMA</th>
+                    <th style={{ textAlign: 'right' }}>PREÇO</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+                </thead>
+                <tbody>
+                  {currentPrices.map((p: any, idx: number) => {
+                    const isBest = p.available && idx === 0;
+                    return (
+                      <tr key={p.id} className={isBest ? styles.bestPriceRow : ''}>
+                        <td>
+                          <div className={styles.storeCell}>
+                            <div className={styles.storeIcon}>{p.store.name.substring(0,2).toUpperCase()}</div>
+                            <span style={{ fontWeight: 600 }}>{p.store.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ color: 'var(--text-secondary)' }}>Standard Edition</td>
+                        <td>
+                          <span className={styles.platformBadge}>{getPlatformType(p.store.name)}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          {p.available ? (
+                            <div className={styles.priceActionCell}>
+                              <div className={styles.priceBlock}>
+                                {isBest && <span className={styles.oldPrice}>R$ 249,90</span>}
+                                <span className={isBest ? styles.currentPriceBest : styles.currentPriceRegular}>
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: p.currency }).format(p.price)}
+                                </span>
+                              </div>
+                              {isBest ? (
+                                <Link href="#" className={styles.buyBtnPrimary}>Comprar</Link>
+                              ) : (
+                                <Link href="#" className={styles.buyBtnSecondary}>Ver ↗</Link>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-secondary)' }}>Indisponível</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-          <section className={`${styles.section} glass-panel`}>
-            <div className={styles.chartControls}>
-              <h2 className={styles.sectionTitle} style={{ margin: 0 }}>Histórico e Projeções</h2>
-              <div>
-                <button className={`${styles.chartPeriodBtn} ${chartPeriod === '30' ? styles.active : ''}`} onClick={() => setChartPeriod('30')}>30d</button>
-                <button className={`${styles.chartPeriodBtn} ${chartPeriod === '90' ? styles.active : ''}`} onClick={() => setChartPeriod('90')}>90d</button>
-                <button className={`${styles.chartPeriodBtn} ${chartPeriod === '365' ? styles.active : ''}`} onClick={() => setChartPeriod('365')}>1 Ano</button>
-              </div>
-            </div>
-            <div className={styles.chartContainer} aria-label={`Gráfico de histórico de preços para ${game.name}`}>
-              [Gráfico de linha renderizado aqui - Período: {chartPeriod} dias. Inclui Projeção de Tendência e Eventos Sazonais]
-            </div>
-            <div className={styles.meta} style={{ marginTop: '1rem', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'block' }}>Menor Preço Histórico</span>
-                <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(allTimeLow.price)}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'block' }}>Média de {chartPeriod} dias</span>
-                <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(average90Days)}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.chatbotContainer} aria-label="Assistente Conversacional GameHunter">
-            <div className={styles.chatbotHeader}>
-              <span style={{ fontSize: '1.5rem' }}>🤖</span> Assistente GameHunter
-            </div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Pergunte-me sobre o histórico de {game.name}, quando foi a melhor promoção ou se vale a pena esperar a próxima Black Friday.
-            </div>
-            <div className={styles.chatbotInputContainer}>
-              <input 
-                type="text" 
-                className={styles.chatbotInput} 
-                placeholder="Ex: Devo comprar agora ou esperar a Summer Sale?" 
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-              />
-              <button className="btn-primary" onClick={() => { alert('Esta é uma versão mockada do assistente. Em produção, conectaremos a uma IA real.'); setChatMessage(''); }}>Enviar</button>
+            <div className={styles.actionButtons}>
+              <button className={styles.alertBtn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Bell size={18} /> Criar Alerta de Preço
+              </button>
+              <button className={styles.wishlistBtn} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Heart size={18} /> Adicionar à Wishlist
+              </button>
             </div>
           </section>
         </div>
 
-        <aside className={styles.sidebar}>
-          <div className={`${styles.scoreCard} glass-panel`}>
-            <div style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontWeight: 600 }}>SCORE DE OPORTUNIDADE</div>
-            <div className={styles.scoreValue} style={{ color: opportunityScore.score >= 80 ? 'var(--success)' : opportunityScore.score >= 50 ? 'var(--warning)' : 'var(--danger)' }}>
-              {opportunityScore.score}
+        <aside className={styles.sidebarContent}>
+          <section className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Histórico (90 dias) + Projeção</h2>
+              <span className={styles.currencyBadge}>BRL</span>
             </div>
-            <div className={styles.scoreRecommendation}>
-              {opportunityScore.recommendation}
+            
+            <div className={styles.chartMockup}>
+               {/* Mocking the chart layout visually as requested */}
+               <div className={styles.chartGrid}>
+                  <div className={styles.chartLine}></div>
+                  <div className={styles.chartLine}></div>
+                  <div className={styles.chartLine}></div>
+                  <div className={styles.chartLine}></div>
+               </div>
+               
+               <div className={styles.chartEvents}>
+                  <span className={styles.chartEventLabel} style={{ left: '20%' }}>Spring Sale</span>
+                  <span className={styles.chartEventLabel} style={{ left: '70%' }}>Summer Sale</span>
+               </div>
+               
+               <div className={styles.chartPathSVG}>
+                  <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    <path d="M0,40 L10,40 L15,80 L25,80 L30,40 L60,40 L65,90 L75,90" fill="none" stroke="#3B82F6" strokeWidth="2" />
+                    <path d="M75,90 L85,45 L100,45" fill="none" stroke="#EAB308" strokeWidth="2" strokeDasharray="4,4" />
+                    <polygon points="75,90 85,30 100,30 100,60 85,60 75,90" fill="rgba(234, 179, 8, 0.1)" />
+                  </svg>
+               </div>
+               
+               <div className={styles.chartMaxMin}>
+                 <span className={styles.chartMax}>Max: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxPrice)}</span>
+                 <span className={styles.chartMin}>Min: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(minPrice)}</span>
+               </div>
             </div>
-            <div className={styles.scoreDetails}>
-              (Baseado em preço mínimo e média recente)
+            
+            <div className={styles.chartWarning}>
+              ⚠️ Promoção expira em 3d
             </div>
-          </div>
-
-          <div className={`${styles.section} glass-panel`}>
-            <h3 style={{ marginBottom: '1rem' }}>Alertas de Preço</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              Seja notificado quando este jogo atingir o seu preço-alvo.
-            </p>
-            <button 
-              className="btn-primary" 
-              style={{ width: '100%', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
-              aria-label="Criar alerta de preço"
-              aria-haspopup="dialog"
-              title="Configurar notificação de preço"
-              onClick={() => setIsAlertModalOpen(true)}
-            >
-              🔔 Criar Alerta
-            </button>
-          </div>
+          </section>
         </aside>
       </div>
-
-      {isAlertModalOpen && (
-        <div className={styles.modalOverlay} onClick={() => setIsAlertModalOpen(false)}>
-          <div 
-            className={styles.modalContent} 
-            role="dialog" 
-            aria-modal="true" 
-            aria-labelledby="modal-title"
-            tabIndex={-1}
-            ref={modalRef}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="modal-title" style={{ marginBottom: '1rem' }}>Configurar Alerta</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Defina o preço desejado para ser notificado.
-            </p>
-            <input type="number" placeholder="Preço Alvo (R$)" className={styles.searchInput} style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: 'var(--radius-sm)' }} />
-            <div className={styles.modalActions}>
-              <button className="btn-primary" style={{ background: 'transparent', border: '1px solid var(--border-color)' }} onClick={() => setIsAlertModalOpen(false)}>Cancelar</button>
-              <button className="btn-primary" onClick={() => setIsAlertModalOpen(false)}>Salvar Alerta</button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

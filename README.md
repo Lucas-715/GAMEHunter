@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GameHunter 🎮
 
-## Getting Started
+O **GameHunter** é a plataforma definitiva para monitoramento de preços, comparação de lojas e alertas de promoções para jogos digitais. Construído com tecnologias modernas, o projeto oferece aos usuários uma visão consolidada de ofertas (Steam, GOG, Nuuvem, Instant Gaming) garantindo que você nunca pague o preço cheio se não precisar.
 
-First, run the development server:
+## ✨ Funcionalidades
 
+- **Dashboard Integrada:** Exibição dinâmica de jogos populares, separados por ofertas "Hero" e oportunidades.
+- **Mecanismo de Busca Robusto:** Múltiplas integrações com lojas oficiais e marketplaces para enriquecer o catálogo em tempo real.
+- **Histórico de Preços:** Gráfico visual detalhado mapeando os preços mais baixos (all-time low) e o histórico dos últimos 6 meses.
+- **Autenticação (NextAuth + Prisma):** Sistema de login e cadastro totalmente funcional, permitindo gerenciamento de conta, acesso a recursos premium (Gamification Widget) e salvamento de configurações.
+- **Jogos Grátis:** Listagem e links diretos para resgatar títulos disponibilizados gratuitamente nas plataformas.
+- **Design Moderno:** Interface estética focada em tipografias sólidas (Geist/Sora), temas dinâmicos com Glassmorphism, microinterações e paleta premium voltada ao público gamer.
+
+## 🛠 Tecnologias
+
+- **Framework:** [Next.js](https://nextjs.org/) (App Router)
+- **Estilização:** Tailwind CSS + UI Customizada
+- **Banco de Dados:** SQLite (Desenvolvimento) + [Prisma ORM](https://www.prisma.io/)
+- **Autenticação:** NextAuth.js com JWT e Credentials Provider (Bcrypt)
+- **Integrações/APIs:** RAWG API (Metadados e Capas), Adaptadores Customizados (Steam, GOG, Nuuvem, IG)
+
+## 🚀 Como Executar
+
+### Pré-requisitos
+- Node.js (v18+)
+- npm ou yarn
+
+### Instalação
+
+1. Clone o repositório:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/seu-usuario/gamehunter.git
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Instale as dependências:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configure as variáveis de ambiente `.env`:
+```env
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="sua-chave-secreta"
+NEXTAUTH_URL="http://localhost:3000"
+RAWG_API_KEY="sua-api-key-aqui"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Prepare o banco de dados:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-## Learn More
+5. Inicie o servidor:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Acesse no navegador: [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎨 Identidade Visual
+A interface utiliza tipografia `Sora` para títulos de impacto e `Geist` para parágrafos legíveis. O design foi cuidadosamente arquitetado para impressionar no primeiro olhar, usando tons vibrantes e painéis translúcidos, honrando o mascote "GameHunter" de cabelos espetados.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Feito com ♥ para a comunidade gamer!

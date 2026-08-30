@@ -3,129 +3,162 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import styles from './wishlist.module.css'
+import Image from 'next/image'
+import { CloudDownload, Plus, Edit, MoreVertical, Eye, Check, Mail, Smartphone, MessageSquare } from 'lucide-react'
 
-const MOCK_WISHLIST = [
-  { id: 1, name: 'Hogwarts Legacy', targetPrice: 120, currentPrice: 150, history: [199, 180, 160, 150, 150] },
-  { id: 2, name: 'Spider-Man Remastered', targetPrice: 99, currentPrice: 120, history: [199, 199, 150, 140, 120] },
-  { id: 3, name: 'God of War', targetPrice: 70, currentPrice: 65, history: [100, 90, 80, 75, 65], reached: true },
+const MOCK_ACTIVE_ALERTS = [
+  { id: 1, title: 'Cyberpunk 2077: Phantom Liberty', targetPrice: 99.00, currentPrice: 89.90, platforms: 'Steam • GOG • Epic', hit: true, image: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg' },
+  { id: 2, title: 'Elden Ring: Shadow of the Erdtree', targetPrice: 150.00, currentPrice: 199.90, platforms: 'Steam • Nuuvem', hit: false, image: 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg' },
 ]
 
-export default function Wishlist() {
+export default function WishlistPage() {
   const [activeTab, setActiveTab] = useState('ativos')
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
-  const activeAlerts = MOCK_WISHLIST.filter(item => !item.reached)
-  const reachedAlerts = MOCK_WISHLIST.filter(item => item.reached)
+  const handleImageError = (id: number) => {
+    setImageErrors(prev => ({ ...prev, [id]: true }));
+  };
 
   return (
-    <main className={styles.container}>
-      <Link href="/" style={{ color: 'var(--text-secondary)', marginBottom: '2rem', display: 'inline-block' }} aria-label="Voltar para a Home">
-        ← Voltar
-      </Link>
-      
+    <main className={styles.main}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerInfo}>
           <h1 className={styles.title}>Monitoramento Estratégico</h1>
-          <p className={styles.subtitle}>Gerencie seus alertas e veja quanto você economizou.</p>
+          <p className={styles.subtitle}>Gerencie seus alvos de aquisição e configurações de alerta.</p>
         </div>
-        <div className={styles.savingsCard}>
-          <div className={styles.savingsTitle}>Economia Total</div>
-          <div className={styles.savingsValue}>R$ 345,50</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-            <span className={styles.badge} style={{ background: 'var(--tertiary)', color: '#000', marginRight: '5px' }}>🏆 Hunter Ouro</span>
-            Baseado em 5 compras
+        
+        <div className={styles.headerActions}>
+          <div className={styles.savingsCard}>
+            <span className={styles.savingsLabel}>Economia Total</span>
+            <span className={styles.savingsValue}>R$ 345,50</span>
           </div>
+          <button className={styles.btnOutline} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CloudDownload size={18} /> Importar Steam Wishlist
+          </button>
+          <button className={styles.btnPrimary} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Plus size={18} /> Novo Alerta
+          </button>
         </div>
       </header>
 
-      <div className={styles.tabs}>
-        <div className={`${styles.tab} ${activeTab === 'ativos' ? styles.active : ''}`} onClick={() => setActiveTab('ativos')}>
-          Alertas Ativos ({activeAlerts.length})
-        </div>
-        <div className={`${styles.tab} ${activeTab === 'atingidos' ? styles.active : ''}`} onClick={() => setActiveTab('atingidos')}>
-          Atingidos ({reachedAlerts.length})
-        </div>
-        <div className={`${styles.tab} ${activeTab === 'notificacoes' ? styles.active : ''}`} onClick={() => setActiveTab('notificacoes')}>
-          Canais de Notificação
-        </div>
-      </div>
+      <nav className={styles.tabs} aria-label="Navegação da Wishlist">
+        <button className={`${styles.tabBtn} ${activeTab === 'ativos' ? styles.activeTab : ''}`} onClick={() => setActiveTab('ativos')}>Ativos (12)</button>
+        <button className={`${styles.tabBtn} ${activeTab === 'atingidos' ? styles.activeTab : ''}`} onClick={() => setActiveTab('atingidos')}>Atingidos (3)</button>
+        <button className={`${styles.tabBtn} ${activeTab === 'historico' ? styles.activeTab : ''}`} onClick={() => setActiveTab('historico')}>Histórico</button>
+        <button className={`${styles.tabBtn} ${activeTab === 'canais' ? styles.activeTab : ''}`} onClick={() => setActiveTab('canais')}>⚙️ Canais de Notificação</button>
+      </nav>
 
       {activeTab === 'ativos' && (
-        <div className={styles.grid}>
-          {activeAlerts.map(item => (
-            <div key={item.id} className={styles.wishlistCard}>
-              <div className={styles.cardHeader}>
-                <div>
-                  <h3 className={styles.gameName}>{item.name}</h3>
-                  <div className={styles.targetPrice}>Alvo: R$ {item.targetPrice}</div>
+        <div className={styles.contentLayout}>
+          <div className={styles.grid}>
+            {MOCK_ACTIVE_ALERTS.map(alert => (
+              <div key={alert.id} className={styles.gameCard}>
+                <div className={styles.cardImageContainer}>
+                  {imageErrors[alert.id] ? (
+                    <div style={{ width: '100%', height: '100%', backgroundColor: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
+                      Sem Imagem
+                    </div>
+                  ) : (
+                    <Image 
+                      src={alert.image} 
+                      alt={alert.title} 
+                      fill 
+                      style={{ objectFit: 'cover' }} 
+                      onError={() => handleImageError(alert.id)}
+                    />
+                  )}
+                  <div className={styles.cardOverlay}></div>
+                  {alert.hit ? (
+                    <div className={styles.hitBadge}><Check size={12} style={{ display: 'inline', marginRight: '4px' }} /> Alvo Atingido</div>
+                  ) : (
+                    <div className={styles.monitoringBadge}><Eye size={12} style={{ display: 'inline', marginRight: '4px' }} /> Monitorando</div>
+                  )}
                 </div>
-                <button className="btn-primary" style={{ background: 'transparent', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '0.2rem 0.5rem' }}>
-                  Cancelar
-                </button>
-              </div>
-              
-              <div aria-label="Gráfico Sparkline da tendência de preço">
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Tendência (30d)</span>
-                <div className={styles.sparklineContainer}>
-                  {item.history.map((val, i) => (
-                    <div key={i} className={styles.sparklineBar} style={{ height: `${(val / 200) * 100}%` }}></div>
-                  ))}
+                
+                <div className={styles.cardContent}>
+                  <h3 className={styles.gameTitle}>{alert.title}</h3>
+                  <p className={styles.platforms}>{alert.platforms}</p>
+
+                  <div className={styles.priceRow}>
+                    <span className={styles.priceLabel}>Preço Alvo:</span>
+                    <span className={styles.priceValue}>R$ {alert.targetPrice.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                  
+                  <div className={styles.priceRow}>
+                    <span className={styles.priceLabel}>Preço Atual:</span>
+                    <span className={`${styles.priceValue} ${alert.hit ? styles.priceHit : styles.priceWarning}`}>
+                      R$ {alert.currentPrice.toFixed(2).replace('.', ',')} {alert.hit && '⬇'} {alert.hit === false && '—'}
+                    </span>
+                  </div>
+                  
+                  {/* Sparkline mockup */}
+                  <div className={styles.sparklineContainer}>
+                     <svg width="100%" height="30" preserveAspectRatio="none" viewBox="0 0 100 30">
+                        <path d={alert.hit ? "M0,15 L20,10 L40,25 L60,15 L80,20 L100,28" : "M0,25 L20,20 L40,15 L60,25 L80,10 L100,5"} fill="none" stroke={alert.hit ? "#22C55E" : "#EAB308"} strokeWidth="2" />
+                     </svg>
+                  </div>
+
+                  <div className={styles.cardActions}>
+                    {alert.hit ? (
+                      <button className={styles.btnBuy}>Comprar Agora</button>
+                    ) : (
+                      <button className={styles.btnEdit} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <Edit size={16} /> Editar
+                      </button>
+                    )}
+                    <button className={styles.btnOptions}><MoreVertical size={16} /></button>
+                  </div>
                 </div>
               </div>
-
-              <div className={styles.currentPrice}>
-                <span>R$ {item.currentPrice}</span>
-                <span className={styles.badge}>Atual</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'atingidos' && (
-        <div className={styles.grid}>
-          {reachedAlerts.map(item => (
-            <div key={item.id} className={styles.wishlistCard} style={{ borderColor: 'var(--success)' }}>
-              <div className={styles.cardHeader}>
-                <div>
-                  <h3 className={styles.gameName}>{item.name}</h3>
-                  <div className={styles.targetPrice}>Alvo: R$ {item.targetPrice}</div>
-                </div>
-                <span className={styles.badge} style={{ background: 'var(--success)', color: '#fff' }}>Alvo Atingido!</span>
-              </div>
-              
-              <div className={styles.currentPrice} style={{ color: 'var(--success)', marginTop: '1rem' }}>
-                <span>R$ {item.currentPrice}</span>
-                <button className="btn-primary" style={{ fontSize: '0.9rem' }}>Comprar Agora</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'notificacoes' && (
-        <div className={`${styles.wishlistCard} glass-panel`} style={{ maxWidth: '600px' }}>
-          <h3 className={styles.gameName}>Configurações de Notificação</h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Escolha onde deseja receber os alertas quando o preço alvo for atingido.</p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent-primary)' }} />
-              E-mail (lucas@example.com)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--accent-primary)' }} />
-              Push Notifications (Navegador)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}>
-              <input type="checkbox" style={{ accentColor: 'var(--accent-primary)' }} />
-              Telegram (@lucas_hunter)
-            </label>
+            ))}
           </div>
           
-          <button className="btn-primary" style={{ marginTop: '1rem', width: 'fit-content' }}>Salvar Preferências</button>
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarCard}>
+              <h3 className={styles.sidebarTitle}>⇌ Canais Ativos</h3>
+              
+              <div className={styles.channelItem}>
+                <div className={styles.channelInfo}>
+                  <span className={styles.channelIcon}><Mail size={20} /></span>
+                  <div>
+                    <div className={styles.channelName}>E-mail</div>
+                    <div className={styles.channelDesc}>hunter@exemplo.com</div>
+                  </div>
+                </div>
+                <div className={styles.toggleActive}>
+                  <div className={styles.toggleKnobRight}></div>
+                </div>
+              </div>
+
+              <div className={styles.channelItem}>
+                <div className={styles.channelInfo}>
+                  <span className={styles.channelIcon}><Smartphone size={20} /></span>
+                  <div>
+                    <div className={styles.channelName}>Push Mobile</div>
+                    <div className={styles.channelDesc}>App GameHunter</div>
+                  </div>
+                </div>
+                <div className={styles.toggleInactive}>
+                  <div className={styles.toggleKnobLeft}></div>
+                </div>
+              </div>
+
+              <div className={styles.channelItem}>
+                <div className={styles.channelInfo}>
+                  <span className={styles.channelIcon}><MessageSquare size={20} /></span>
+                  <div>
+                    <div className={styles.channelName}>Discord Webhook</div>
+                    <div className={styles.channelDesc}>#alertas-games</div>
+                  </div>
+                </div>
+                <div className={styles.toggleActive}>
+                  <div className={styles.toggleKnobRight}></div>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       )}
-
     </main>
   )
 }

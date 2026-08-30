@@ -27,6 +27,8 @@ model User {
 
 model Game {
   id              String         @id @default(uuid())
+  steamAppId      String?        @unique
+  slug            String?        @unique
   name            String
   edition         String         @default("Standard")
   publisher       String?
@@ -34,6 +36,7 @@ model Game {
   category        String?
   aggregatedScore Float?
   coverImageUrl   String?
+  isFree          Boolean        @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
@@ -99,4 +102,13 @@ model Wishlist {
   game      Game     @relation(fields: [gameId], references: [id])
 
   @@unique([userId, gameId])
+}
+
+model SearchCache {
+  id        String   @id @default(uuid())
+  key       String   @unique // The query string or 'dashboard'
+  data      String   // JSON stringified payload
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
