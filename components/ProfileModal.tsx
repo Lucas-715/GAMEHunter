@@ -179,7 +179,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               <p className="text-sm text-muted-foreground">{session.user?.email}</p>
             </div>
             <span className="px-2 py-1 bg-primary/10 text-primary border border-primary/20 rounded text-xs font-medium uppercase tracking-wider">
-              {/* @ts-ignore */}
+              {/* @ts-expect-error - Icon type */}
               Plano {session.user?.plan || 'Free'}
             </span>
           </div>

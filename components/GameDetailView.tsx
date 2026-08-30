@@ -178,9 +178,12 @@ export const GameDetailView: React.FC<GameDetailViewProps> = ({ game, onBack }) 
                 {/* Mock Data Bars */}
                 {Array.from({ length: 6 }).map((_, i) => {
                   const basePrice = game.stores[0]?.price || 150;
-                  // Random price variations for the mock chart, with the current price on the right
                   const isCurrent = i === 5;
-                  const mockPrice = isCurrent ? basePrice : basePrice * (1 + (Math.random() * 0.8 - 0.2));
+                  
+                  // Avoid Math.random during render (ESLint purity rule)
+                  // We'll use a deterministic pseudo-random based on the index to vary the price slightly
+                  const variation = [0.1, -0.05, 0.15, -0.1, 0.05, 0];
+                  const mockPrice = isCurrent ? basePrice : basePrice * (1 + variation[i]);
                   const heightPercentage = Math.min(100, Math.max(10, (mockPrice / (basePrice * 2)) * 100));
                   
                   return (
