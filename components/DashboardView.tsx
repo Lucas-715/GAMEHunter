@@ -10,6 +10,8 @@ interface DashboardViewProps {
   onSelectGame: (gameId: string) => void;
   onClaimFreeGame: (gameId: string) => void;
   onQuickBuy: (game: GameItem, storeUrl?: string) => void;
+  isLoading?: boolean;
+  errorMsg?: string | null;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
