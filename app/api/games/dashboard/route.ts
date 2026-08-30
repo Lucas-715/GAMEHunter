@@ -66,11 +66,15 @@ export async function GET() {
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 2)
     
-    await prisma.searchCache.upsert({
-      where: { key: cacheKey },
-      update: { data: JSON.stringify(responseData), expiresAt },
-      create: { key: cacheKey, data: JSON.stringify(responseData), expiresAt }
-    })
+    try {
+      await prisma.searchCache.upsert({
+        where: { key: cacheKey },
+        update: { data: JSON.stringify(responseData), expiresAt },
+        create: { key: cacheKey, data: JSON.stringify(responseData), expiresAt }
+      })
+    } catch (cacheErr) {
+      console.warn("Failed to save to cache (read-only db?):", cacheErr);
+    }
 
     return NextResponse.json(responseData);
   } catch (error) {
