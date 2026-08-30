@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String     @id @default(uuid())
+  name           String?
+  email          String     @unique
+  passwordHash   String?
+  defaultRegion  String     @default("BR")
+  defaultCurrency String    @default("BRL")
+  plan           String     @default("FREE")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  alerts         Alert[]
+  wishlists      Wishlist[]
+}
+
+model Game {
+  id              String         @id @default(uuid())
+  name            String
+  edition         String         @default("Standard")
+  publisher       String?
+  releaseDate     DateTime?
+  category        String?
+  aggregatedScore Float?
+  coverImageUrl   String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  priceHistory    PriceHistory[]
+  alerts          Alert[]
+  wishlists       Wishlist[]
+}
+
+model Store {
+  id              String         @id @default(uuid())
+  name            String         @unique
+  type            String         // OFFICIAL, RESELLER, MARKETPLACE
+  baseCountry     String?
+  integrationStatus String       @default("ACTIVE")
+  logoUrl         String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  priceHistory    PriceHistory[]
+}
+
+model PriceHistory {
+  id          String   @id @default(uuid())
+  price       Float
+  currency    String
+  region      String
+  collectionDate DateTime @default(now())
+  link        String?
+
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id])
+  
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+
+  @@index([gameId, storeId, collectionDate])
+}
+
+model Alert {
+  id               String   @id @default(uuid())
+  type             String   // TARGET_PRICE, DISCOUNT_PERCENT, NEW_LOW
+  conditionValue   Float
+  notificationChannel String // EMAIL, PUSH, WEBHOOK
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+
+  gameId           String
+  game             Game     @relation(fields: [gameId], references: [id])
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+}
