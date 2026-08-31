@@ -31,7 +31,10 @@ export default function GameDetails() {
   if (loading) return <div className={styles.loaderContainer}>Carregando...</div>
   if (!data || data.error) return <div className={styles.loaderContainer}>Jogo não encontrado.</div>
 
-  const { game, currentPrices, opportunityScore, allTimeLow } = data
+  const { game } = data;
+  const currentPrices = game.stores || [];
+  const opportunityScore = { score: game.opportunityScore || 0, recommendation: 'Preço baseado na busca em tempo real' };
+  const allTimeLow = game.allTimeLow || null;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'var(--success)';
@@ -41,7 +44,7 @@ export default function GameDetails() {
 
   const scoreColor = getScoreColor(opportunityScore.score);
   const minPrice = allTimeLow?.price || currentPrices[0]?.price || 0;
-  const maxPrice = Math.max(...currentPrices.map((p: any) => p.price), minPrice * 1.5);
+  const maxPrice = Math.max(0, ...currentPrices.map((p: any) => p.price), minPrice * 1.5);
   const isHistoricalLow = currentPrices[0] && currentPrices[0].price <= minPrice && opportunityScore.score >= 80;
 
   const getPlatformType = (storeName: string) => {
@@ -132,9 +135,9 @@ export default function GameDetails() {
                                 </span>
                               </div>
                               {isBest ? (
-                                <a href={p.storeUrl || p.url || p.link || '#'} target="_blank" rel="noopener noreferrer" className={styles.buyBtnPrimary}>Comprar</a>
+                                <a href={p.storeUrl || p.url || p.link || `https://www.google.com/search?q=${encodeURIComponent(game.name + ' buy ' + p.store.name)}`} target="_blank" rel="noopener noreferrer" className={styles.buyBtnPrimary}>Comprar</a>
                               ) : (
-                                <a href={p.storeUrl || p.url || p.link || '#'} target="_blank" rel="noopener noreferrer" className={styles.buyBtnSecondary}>Ver ↗</a>
+                                <a href={p.storeUrl || p.url || p.link || `https://www.google.com/search?q=${encodeURIComponent(game.name + ' buy ' + p.store.name)}`} target="_blank" rel="noopener noreferrer" className={styles.buyBtnSecondary}>Ver ↗</a>
                               )}
                             </div>
                           ) : (

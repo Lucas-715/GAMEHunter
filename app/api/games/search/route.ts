@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { searchEngine } from '@/lib/search-engine';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -15,7 +17,7 @@ export async function GET(req: Request) {
     return NextResponse.json(results, {
       status: 200,
       headers: {
-        'Cache-Control': 's-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
       }
     });
 
