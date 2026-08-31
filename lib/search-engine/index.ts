@@ -32,9 +32,10 @@ class SearchEngine {
     let steamResults: any[] = [];
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
       const cheapSharkSearch = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`, { 
         signal: controller.signal,
+        cache: 'no-store',
         headers: {
           'User-Agent': 'GameHunter/1.0 (lucas@gamehunter.com)'
         }

@@ -132,9 +132,9 @@ export default function GameDetails() {
                                 </span>
                               </div>
                               {isBest ? (
-                                <Link href="#" className={styles.buyBtnPrimary}>Comprar</Link>
+                                <a href={p.storeUrl || p.url || p.link || '#'} target="_blank" rel="noopener noreferrer" className={styles.buyBtnPrimary}>Comprar</a>
                               ) : (
-                                <Link href="#" className={styles.buyBtnSecondary}>Ver ↗</Link>
+                                <a href={p.storeUrl || p.url || p.link || '#'} target="_blank" rel="noopener noreferrer" className={styles.buyBtnSecondary}>Ver ↗</a>
                               )}
                             </div>
                           ) : (
