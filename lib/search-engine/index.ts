@@ -26,25 +26,26 @@ class SearchEngine {
       console.warn("Prisma findMany failed:", e);
     }
 
-    // Since we decoupled adapters, we query Steam API directly here for the search feature 
-    // to discover new games that aren't in our local DB yet. 
+    // Since Vercel serverless IPs are often blocked by Steam directly, 
+    // we query CheapShark API here for the search feature to discover new games 
+    // that aren't in our local DB yet. This bypasses IP blocks and needs no API keys.
     let steamResults: any[] = [];
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const steamSearch = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=BR`, { signal: controller.signal });
+      const cheapSharkSearch = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`, { signal: controller.signal });
       clearTimeout(timeoutId);
-      if (steamSearch.ok) {
-        const data = await steamSearch.json();
-        if (data && data.items) {
-          steamResults = data.items.map((item: any) => ({
-            title: item.name,
-            storeInternalId: item.id.toString(),
-          }));
+      if (cheapSharkSearch.ok) {
+        const data = await cheapSharkSearch.json();
+        if (data && Array.isArray(data)) {
+          steamResults = data.map((item: any) => ({
+            title: item.external,
+            storeInternalId: item.steamAppID,
+          })).filter(item => item.storeInternalId); // Ensure it has a steam app id
         }
       }
     } catch (e) {
-      console.error("Steam search discovery failed:", e);
+      console.error("CheapShark search discovery failed:", e);
     }
     
     const searchResultsMap = new Map();
