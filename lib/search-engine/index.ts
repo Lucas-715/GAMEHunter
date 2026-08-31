@@ -94,8 +94,9 @@ class SearchEngine {
             priceHistory: []
           }
         }
-        searchResultsMap.set(game.name.toLowerCase(), game);
       }
+      // Always add the game to the search results map, whether it was found or just created
+      searchResultsMap.set(game.name.toLowerCase(), game);
     }
 
     const searchResults = Array.from(searchResultsMap.values());
@@ -219,6 +220,9 @@ class SearchEngine {
     // Since history is ordered by desc, the first time we see a store it is the latest
     for (const record of priceHistory) {
       if (!record.store || !record.store.name) continue;
+      
+      // Temporarily remove Epic Games as requested by the user
+      if (record.store.name.toLowerCase() === 'epic games') continue;
       
       if (!storeMap.has(record.store.name)) {
         storeMap.set(record.store.name, {
