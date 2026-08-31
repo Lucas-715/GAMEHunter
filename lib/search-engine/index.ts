@@ -33,7 +33,12 @@ class SearchEngine {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const cheapSharkSearch = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`, { signal: controller.signal });
+      const cheapSharkSearch = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(query)}&limit=10`, { 
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'GameHunter/1.0 (lucas@gamehunter.com)'
+        }
+      });
       clearTimeout(timeoutId);
       if (cheapSharkSearch.ok) {
         const data = await cheapSharkSearch.json();
