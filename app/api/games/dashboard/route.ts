@@ -7,7 +7,7 @@ import { GameItem } from '@/lib/types'
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const cacheKey = 'dashboard_deals_v6'
+  const cacheKey = 'dashboard_deals_v7'
   
   try {
     try {
