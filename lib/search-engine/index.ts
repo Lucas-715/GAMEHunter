@@ -95,6 +95,10 @@ class SearchEngine {
           }
         }
       }
+      
+      // Inject the cheapest price from CheapShark as a fallback property in memory
+      (game as any).tempCheapest = result.cheapest;
+      
       // Always add the game to the search results map, whether it was found or just created
       searchResultsMap.set(game.name.toLowerCase(), game);
     }
@@ -109,6 +113,12 @@ class SearchEngine {
     for (const game of searchResults.slice(0, 8)) {
       const stores = this.getUniqueStoresFromHistory(game.priceHistory || []);
       
+      const fallbackPrice = Number((game as any).tempCheapest);
+      const allTimeLowPrice = stores.length > 0 ? Math.min(...stores.map(s => s.price)) : fallbackPrice || 0;
+      
+      // If we don't have stores from DB yet, but CheapShark gave us a price, mock it so it doesn't say "Preço Indisponível"
+      const finalStores = stores.length > 0 ? stores : (fallbackPrice > 0 ? [{ name: 'Melhor Preço (Baseado em Várias Lojas)', price: fallbackPrice, url: '', isOfficial: true }] : []);
+
       // For search results, we accept games even without stores (they might just have been discovered)
       validGames.push({
         id: game.id,
@@ -117,10 +127,10 @@ class SearchEngine {
         coverImageUrl: game.coverImageUrl || `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/header.jpg`,
         isFree: game.isFree || false,
         priceHistory: [],
-        allTimeLow: stores.length > 0 ? { price: Math.min(...stores.map(s => s.price)), date: new Date().toISOString() } : { price: 0, date: new Date().toISOString() },
-        stores: stores,
+        allTimeLow: { price: allTimeLowPrice, date: new Date().toISOString() },
+        stores: finalStores,
         tags: game.isFree ? ['Free to Play'] : [],
-        opportunityScore: game.isFree ? 100 : (stores.length > 0 ? 50 : 0)
+        opportunityScore: game.isFree ? 100 : (finalStores.length > 0 ? 50 : 0)
       });
     }
 

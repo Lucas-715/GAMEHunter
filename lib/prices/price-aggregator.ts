@@ -25,8 +25,8 @@ export class PriceAggregator {
   constructor() {
     this.adapters.push(new SteamAdapter());
     this.adapters.push(new GogAdapter());
-    this.adapters.push(new NuuvemAdapter());
-    this.adapters.push(new InstantGamingAdapter());
+    // this.adapters.push(new NuuvemAdapter());
+    // this.adapters.push(new InstantGamingAdapter());
   }
 
   /**
