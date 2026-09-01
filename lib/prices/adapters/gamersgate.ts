@@ -1,10 +1,15 @@
-import { StoreAdapter, StorePrice } from '../types';
+import { StoreAdapter, StorePriceResult } from '../types';
 
 export class GamersGateAdapter implements StoreAdapter {
-  id = 'gamersgate';
-  name = 'GamersGate';
+  storeId = 'gamersgate';
+  storeName = 'GamersGate';
+  isOfficial = true;
+
+  async searchByTitle(title: string): Promise<any[]> {
+    return [];
+  }
   
-  async getPriceByIdentifier(identifier: string): Promise<StorePrice | null> {
+  async getPriceByIdentifier(identifier: string): Promise<StorePriceResult | null> {
     try {
       // 1. Search for game on CheapShark by name
       const searchRes = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(identifier)}&limit=3`, {
@@ -29,9 +34,11 @@ export class GamersGateAdapter implements StoreAdapter {
       if (!deal) return null;
       
       return {
+        storeId: this.storeId,
+        storeName: this.storeName,
         price: Number(deal.price),
         url: `https://www.cheapshark.com/redirect?dealID=${deal.dealID}`,
-        isOfficial: true
+        isOfficial: this.isOfficial
       };
     } catch (error) {
       console.error('Error fetching GamersGate price:', error);

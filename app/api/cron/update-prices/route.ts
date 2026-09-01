@@ -43,10 +43,10 @@ export async function GET(request: Request) {
 
     for (const game of gamesBatch) {
       try {
-        const aggregation = await priceAggregator.aggregatePrices(game.name, game.steamAppId);
+        const aggregation = await priceAggregator.getGamePrices(game);
         
         // Upsert stores and insert price history
-        for (const offer of aggregation.stores) {
+        for (const offer of aggregation) {
           const store = await prisma.store.upsert({
             where: { name: offer.name },
             update: {}, // Already exists, do nothing
@@ -69,14 +69,10 @@ export async function GET(request: Request) {
           });
         }
 
-        // Update the game to reflect new info (e.g. coverImage, isFree) and touch updatedAt
+        // Update the game to reflect new info and touch updatedAt
         await prisma.game.update({
           where: { id: game.id },
-          data: {
-            coverImageUrl: aggregation.coverImageUrl || game.coverImageUrl,
-            isFree: aggregation.isFree,
-            // Prisma will automatically update the `updatedAt` field when modifying the record
-          }
+          data: {} // Prisma will automatically update the `updatedAt` field
         });
 
         updatedCount++;

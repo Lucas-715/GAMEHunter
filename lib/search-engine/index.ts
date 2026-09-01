@@ -117,7 +117,7 @@ class SearchEngine {
       const allTimeLowPrice = stores.length > 0 ? Math.min(...stores.map(s => s.price)) : fallbackPrice || 0;
       
       // If we don't have stores from DB yet, but CheapShark gave us a price, mock it so it doesn't say "Preço Indisponível"
-      const finalStores = stores.length > 0 ? stores : (fallbackPrice > 0 ? [{ name: 'Melhor Preço (Baseado em Várias Lojas)', price: fallbackPrice, url: '', isOfficial: true }] : []);
+      const finalStores = stores.length > 0 ? stores : (fallbackPrice > 0 ? [{ id: 'cheapshark', name: 'Melhor Preço (Baseado em Várias Lojas)', price: fallbackPrice, url: '', isOfficial: true }] : []);
 
       // For search results, we accept games even without stores (they might just have been discovered)
       validGames.push({
@@ -167,10 +167,10 @@ class SearchEngine {
     // If it's stale or empty, we scrape live on-demand for this specific game
     if (!isFresh || stores.length === 0) {
       console.log(`[getGameDetails] Prices for ${game.name} are stale/empty. Scraping live...`);
-      const aggregation = await priceAggregator.aggregatePrices(game.name, game.steamAppId);
+      const aggregation = await priceAggregator.getGamePrices(game);
       
       // Format to stores
-      stores = aggregation.stores;
+      stores = aggregation;
       
       // Update DB asynchronously in the background so we don't block the UI more than necessary
       // Or we can await it if we want to ensure it's saved. For vercel, if we don't await, it might get killed.
@@ -200,14 +200,8 @@ class SearchEngine {
 
       await prisma.game.update({
         where: { id: game.id },
-        data: {
-          coverImageUrl: aggregation.coverImageUrl || game.coverImageUrl,
-          isFree: aggregation.isFree,
-        }
+        data: {}
       });
-      
-      game.coverImageUrl = aggregation.coverImageUrl || game.coverImageUrl;
-      game.isFree = aggregation.isFree;
     }
 
     return {

@@ -1,10 +1,15 @@
-import { StoreAdapter, StorePrice } from '../types';
+import { StoreAdapter, StorePriceResult } from '../types';
 
 export class GreenManGamingAdapter implements StoreAdapter {
-  id = 'gmg';
-  name = 'Green Man Gaming';
+  storeId = 'gmg';
+  storeName = 'Green Man Gaming';
+  isOfficial = true;
+
+  async searchByTitle(title: string): Promise<any[]> {
+    return [];
+  }
   
-  async getPriceByIdentifier(identifier: string): Promise<StorePrice | null> {
+  async getPriceByIdentifier(identifier: string): Promise<StorePriceResult | null> {
     try {
       // 1. Search for game on CheapShark by name
       const searchRes = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(identifier)}&limit=3`, {
@@ -30,9 +35,11 @@ export class GreenManGamingAdapter implements StoreAdapter {
       if (!gmgDeal) return null;
       
       return {
+        storeId: this.storeId,
+        storeName: this.storeName,
         price: Number(gmgDeal.price),
         url: `https://www.cheapshark.com/redirect?dealID=${gmgDeal.dealID}`,
-        isOfficial: true
+        isOfficial: this.isOfficial
       };
     } catch (error) {
       console.error('Error fetching GMG price:', error);

@@ -1,4 +1,4 @@
-import { StoreAdapter } from './types';
+import { StoreAdapter, StorePriceResult } from './types';
 import { SteamAdapter } from './adapters/steam';
 import { GogAdapter } from './adapters/gog';
 import { GreenManGamingAdapter } from './adapters/greenmangaming';
@@ -13,14 +13,8 @@ export interface StoreOffer {
   isOfficial: boolean;
 }
 
-export interface AggregatedResult {
-  coverImageUrl?: string;
-  isFree: boolean;
-  stores: StoreOffer[];
-}
-
 export class PriceAggregator {
-  private adapters: StoreAdapter[] = [];
+  adapters: StoreAdapter[] = [];
 
   constructor() {
     this.adapters.push(new SteamAdapter());
@@ -30,41 +24,75 @@ export class PriceAggregator {
   }
 
   /**
-   * Fetches prices from all adapters in parallel.
-   * Tolerates failures from individual adapters.
+   * Fetches the current price of a game across all supported stores
+   * by using its DB identifier (steamAppId, slug, etc) or resolving by name.
    */
-  async aggregatePrices(gameName: string, steamAppId?: string | null): Promise<AggregatedResult> {
+  async getGamePrices(game: any): Promise<StoreOffer[]> {
+    const promises = this.adapters.map(async (adapter) => {
+      let identifier = game.name;
+      
+      // Some adapters prefer steamAppId
+      if (adapter.storeId === 'steam' && game.steamAppId) {
+        identifier = game.steamAppId;
+      }
+
+      try {
+        const result = await adapter.getPriceByIdentifier(identifier);
+        
+        if (result) {
+          return {
+            id: result.storeId,
+            name: result.storeName,
+            price: result.price,
+            url: result.url,
+            isOfficial: result.isOfficial
+          } as StoreOffer;
+        }
+      } catch (e) {
+        console.error(`PriceAggregator: adapter ${adapter.storeName} failed for ${identifier}`, e);
+      }
+      return null;
+    });
+
+    const results = await Promise.all(promises);
+    return results.filter((r): r is StoreOffer => r !== null);
+  }
+
+  /**
+   * Used for search-as-you-type where we only have a title string.
+   * This calls searchByTitle on all adapters concurrently.
+   */
+  async getPricesByTitle(gameName: string): Promise<StoreOffer[]> {
     const offers: StoreOffer[] = [];
-    let coverImageUrl: string | undefined;
-    let isFree = false;
+    const promises: Promise<void>[] = [];
 
-    const steamAdapter = this.adapters.find(a => a.storeId === 'steam') as SteamAdapter;
-    const gogAdapter = this.adapters.find(a => a.storeId === 'gog') as GogAdapter;
-    const nuuvemAdapter = this.adapters.find(a => a.storeId === 'nuuvem') as NuuvemAdapter;
-    const igAdapter = this.adapters.find(a => a.storeId === 'instantgaming') as InstantGamingAdapter;
-
-    // Use Promise.allSettled to ensure one failing adapter doesn't break the entire aggregator
-    const promises = [];
+    const steamAdapter = this.adapters.find(a => a.storeId === 'steam');
+    const gogAdapter = this.adapters.find(a => a.storeId === 'gog');
+    const gmgAdapter = this.adapters.find(a => a.storeId === 'gmg');
+    const gamersgateAdapter = this.adapters.find(a => a.storeId === 'gamersgate');
 
     // 1. Steam
-    if (steamAppId && steamAdapter) {
+    if (steamAdapter) {
       promises.push(
-        steamAdapter.getPriceByIdentifier(steamAppId)
-          .then(result => {
-            if (result) {
-              const price = result.price;
-              if (price !== undefined && price >= 0) {
-                offers.push({
-                  id: steamAdapter.storeId,
-                  name: steamAdapter.storeName,
-                  price,
-                  url: result.url || `https://store.steampowered.com/app/${steamAppId}`,
-                  isOfficial: true
-                });
+        steamAdapter.searchByTitle(gameName)
+          .then((results: any[]) => {
+            if (results.length > 0) {
+              const bestMatchStr = matchGameTitle(gameName, results.map(r => r.title));
+              if (bestMatchStr) {
+                const bestMatch = results.find(r => r.title === bestMatchStr.bestMatch);
+                if (bestMatch && bestMatch.price >= 0) {
+                  offers.push({
+                    id: steamAdapter.storeId,
+                    name: steamAdapter.storeName,
+                    price: bestMatch.price,
+                    url: bestMatch.url,
+                    isOfficial: steamAdapter.isOfficial
+                  });
+                }
               }
             }
           })
-          .catch(e => console.error("PriceAggregator: Steam failed", e))
+          .catch((e: Error) => console.error("PriceAggregator: Steam failed", e))
       );
     }
 
@@ -72,63 +100,24 @@ export class PriceAggregator {
     if (gogAdapter) {
       promises.push(
         gogAdapter.searchByTitle(gameName)
-          .then(results => {
+          .then((results: any[]) => {
             if (results.length > 0) {
-              const candidateTitles = results.map(r => r.title);
-              const match = matchGameTitle(gameName, candidateTitles);
-              if (match) {
-                const matchedGog = results.find(r => r.title === match.bestMatch);
-                if (matchedGog && matchedGog.price >= 0) {
-                  offers.push({
-                    id: gogAdapter.storeId,
-                    name: gogAdapter.storeName,
-                    price: matchedGog.price,
-                    url: matchedGog.url,
-                    isOfficial: gogAdapter.isOfficial
-                  });
-                }
+              const bestMatchStr = matchGameTitle(gameName, results.map(r => r.title));
+              if (bestMatchStr) {
+                 const bestMatch = results.find(r => r.title === bestMatchStr.bestMatch);
+                 if (bestMatch && bestMatch.price >= 0) {
+                   offers.push({
+                     id: gogAdapter.storeId,
+                     name: gogAdapter.storeName,
+                     price: bestMatch.price,
+                     url: bestMatch.url,
+                     isOfficial: gogAdapter.isOfficial
+                   });
+                 }
               }
             }
           })
-          .catch(e => console.error("PriceAggregator: GOG failed", e))
-      );
-    }
-
-    // 3. Nuuvem
-    if (nuuvemAdapter) {
-      promises.push(
-        nuuvemAdapter.searchByTitle(gameName)
-          .then(results => {
-            if (results.length > 0 && results[0].price >= 0) {
-              offers.push({
-                id: nuuvemAdapter.storeId,
-                name: nuuvemAdapter.storeName,
-                price: results[0].price,
-                url: results[0].url,
-                isOfficial: nuuvemAdapter.isOfficial
-              });
-            }
-          })
-          .catch(e => console.error("PriceAggregator: Nuuvem failed", e))
-      );
-    }
-
-    // 4. Instant Gaming
-    if (igAdapter) {
-      promises.push(
-        igAdapter.searchByTitle(gameName)
-          .then(results => {
-            if (results.length > 0 && results[0].price >= 0) {
-              offers.push({
-                id: igAdapter.storeId,
-                name: igAdapter.storeName,
-                price: results[0].price,
-                url: results[0].url,
-                isOfficial: igAdapter.isOfficial
-              });
-            }
-          })
-          .catch(e => console.error("PriceAggregator: IG failed", e))
+          .catch((e: Error) => console.error("PriceAggregator: GOG failed", e))
       );
     }
 
@@ -137,19 +126,7 @@ export class PriceAggregator {
 
     // Sort by cheapest
     offers.sort((a, b) => a.price - b.price);
-
-    // Validate and clean up
-    const validOffers = offers.filter(offer => 
-      offer.price >= 0 && 
-      offer.url && 
-      offer.url.startsWith('http')
-    );
-
-    return {
-      coverImageUrl,
-      isFree,
-      stores: validOffers
-    };
+    return offers;
   }
 }
 
