@@ -1,4 +1,5 @@
 import { StoreAdapter, StorePriceResult } from '../types';
+import { convertUSDToBRL } from '../../currency';
 
 export class GamersGateAdapter implements StoreAdapter {
   storeId = 'gamersgate';
@@ -32,11 +33,16 @@ export class GamersGateAdapter implements StoreAdapter {
       // 3. Find GamersGate deal (storeID 2)
       const deal = detailsData.deals.find((d: any) => d.storeID === '2');
       if (!deal) return null;
+
+      const priceNum = parseFloat(deal.price);
+      if (isNaN(priceNum)) return null;
+
+      const brlPrice = await convertUSDToBRL(priceNum);
       
       return {
         storeId: this.storeId,
         storeName: this.storeName,
-        price: Number(deal.price),
+        price: brlPrice,
         url: `https://www.cheapshark.com/redirect?dealID=${deal.dealID}`,
         isOfficial: this.isOfficial
       };

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { GameItem } from '@/lib/types';
+import { convertUSDToBRL } from '../currency';
 import { priceAggregator, StoreOffer } from '../prices/price-aggregator';
 
 class SearchEngine {
@@ -47,6 +48,7 @@ class SearchEngine {
           steamResults = data.map((item: any) => ({
             title: item.external,
             storeInternalId: item.steamAppID,
+            cheapest: item.cheapest,
           })).filter(item => item.storeInternalId); // Ensure it has a steam app id
         }
       }
@@ -113,7 +115,8 @@ class SearchEngine {
     for (const game of searchResults.slice(0, 8)) {
       const stores = this.getUniqueStoresFromHistory(game.priceHistory || []);
       
-      const fallbackPrice = Number((game as any).tempCheapest);
+      const usdFallback = Number((game as any).tempCheapest);
+      const fallbackPrice = await convertUSDToBRL(usdFallback);
       const allTimeLowPrice = stores.length > 0 ? Math.min(...stores.map(s => s.price)) : fallbackPrice || 0;
       
       // If we don't have stores from DB yet, but CheapShark gave us a price, mock it so it doesn't say "Preço Indisponível"
