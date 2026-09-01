@@ -1,8 +1,8 @@
 import { StoreAdapter } from './types';
 import { SteamAdapter } from './adapters/steam';
 import { GogAdapter } from './adapters/gog';
-import { NuuvemAdapter } from './adapters/nuuvem';
-import { InstantGamingAdapter } from './adapters/instant_gaming';
+import { GreenManGamingAdapter } from './adapters/greenmangaming';
+import { GamersGateAdapter } from './adapters/gamersgate';
 import { matchGameTitle } from './matcher';
 
 export interface StoreOffer {
@@ -25,8 +25,8 @@ export class PriceAggregator {
   constructor() {
     this.adapters.push(new SteamAdapter());
     this.adapters.push(new GogAdapter());
-    // this.adapters.push(new NuuvemAdapter());
-    // this.adapters.push(new InstantGamingAdapter());
+    this.adapters.push(new GreenManGamingAdapter());
+    this.adapters.push(new GamersGateAdapter());
   }
 
   /**
