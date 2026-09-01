@@ -49,20 +49,16 @@ export class PriceAggregator {
     // 1. Steam
     if (steamAppId && steamAdapter) {
       promises.push(
-        steamAdapter.getFullAppDetails(steamAppId)
-          .then(steamDetails => {
-            if (steamDetails) {
-              if (steamDetails.header_image) coverImageUrl = steamDetails.header_image;
-              if (steamDetails.is_free) isFree = true;
-              
-              const price = steamDetails.is_free ? 0 : (steamDetails.price_overview?.final ? steamDetails.price_overview.final / 100 : undefined);
-              
+        steamAdapter.getPriceByIdentifier(steamAppId)
+          .then(result => {
+            if (result) {
+              const price = result.price;
               if (price !== undefined && price >= 0) {
                 offers.push({
                   id: steamAdapter.storeId,
                   name: steamAdapter.storeName,
                   price,
-                  url: `https://store.steampowered.com/app/${steamAppId}`,
+                  url: result.url || `https://store.steampowered.com/app/${steamAppId}`,
                   isOfficial: true
                 });
               }

@@ -12,8 +12,7 @@ interface SearchResultsViewProps {
 export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ query, games, onSelectGame }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(300);
-  
-  const allPlatforms = ['Steam', 'Epic Games', 'GOG', 'Nuuvem', 'Green Man Gaming'];
+  const allPlatforms = ['Steam', 'GOG', 'Nuuvem', 'Green Man Gaming'];
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(allPlatforms);
   const [storeType, setStoreType] = useState<'all' | 'official' | 'keys'>('all');
 
@@ -25,7 +24,6 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ query, gam
     );
   };
 
-  // Filter games based on query, price, platforms, and store type
   const filteredGames = games.map(g => {
     // Filter the game's stores based on criteria
     const validStores = g.stores.filter(store => {
@@ -39,13 +37,16 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ query, gam
       return matchesPlatform && matchesStoreType && matchesPrice;
     }).sort((a, b) => a.price - b.price);
 
-    return { ...g, stores: validStores };
+    return { ...g, stores: validStores, originalStoreCount: g.stores.length };
   }).filter(g => {
     // 1. Query matching
     const matchesQuery = g.name.toLowerCase().includes(query.toLowerCase());
     if (!matchesQuery) return false;
 
-    // If it has at least one valid store after filtering, show the game
+    // If the game has no stores yet (newly discovered), always show it
+    if ((g as any).originalStoreCount === 0) return true;
+
+    // If it originally had stores, but they were filtered out, hide the game
     return g.stores.length > 0;
   });
 
@@ -178,16 +179,28 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ query, gam
                           </div>
                         ) : (
                           <>
-                            <span className="text-xs text-muted-foreground line-through">R$ {game.stores[0]?.price?.toFixed(2).replace('.', ',')}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl font-bold">R$ {game.allTimeLow?.price?.toFixed(2).replace('.', ',')}</span>
-                              {game.stores[0]?.price > 0 && game.allTimeLow?.price < game.stores[0]?.price && (
-                                <span className="px-1.5 py-0.5 bg-success/20 text-success text-xs font-bold rounded">
-                                  -{Math.round((1 - game.allTimeLow.price / game.stores[0]?.price) * 100)}%
+                            {game.stores && game.stores.length > 0 && game.stores[0].price !== undefined ? (
+                              <>
+                                <span className="text-xs text-muted-foreground line-through">
+                                  R$ {game.stores[0].price.toFixed(2).replace('.', ',')}
                                 </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground mt-1">na {game.stores[0]?.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-2xl font-bold">
+                                    R$ {game.allTimeLow?.price?.toFixed(2).replace('.', ',')}
+                                  </span>
+                                  {game.stores[0].price > 0 && game.allTimeLow?.price < game.stores[0].price && (
+                                    <span className="px-1.5 py-0.5 bg-success/20 text-success text-xs font-bold rounded">
+                                      -{Math.round((1 - game.allTimeLow.price / game.stores[0].price) * 100)}%
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground mt-1">na {game.stores[0].name}</span>
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-2 mt-4">
+                                <span className="text-lg font-bold text-muted-foreground">Preço Indisponível</span>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>

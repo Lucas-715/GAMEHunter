@@ -84,7 +84,8 @@ export default function Home() {
     const fetchSearch = async () => {
       if (debouncedQuery.trim().length > 0) {
         try {
-          const res = await fetch(`/api/games/search?q=${encodeURIComponent(debouncedQuery)}`);
+          // Add a cache-busting timestamp to prevent Vercel from serving stale edges
+          const res = await fetch(`/api/games/search?q=${encodeURIComponent(debouncedQuery)}&t=${Date.now()}`);
           const data = await res.json();
           setSearchResults(data.games || []);
         } catch (err) {

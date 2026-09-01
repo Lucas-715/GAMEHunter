@@ -147,7 +147,7 @@ export const GameDetailView: React.FC<GameDetailViewProps> = ({ game, onBack }) 
                           </div>
                         </div>
                         <a 
-                          href={store.url} 
+                          href={store.url || `https://www.google.com/search?q=${encodeURIComponent(game.name + ' buy ' + store.name)}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className={isBest ? 'btn-primary' : 'btn-secondary'}

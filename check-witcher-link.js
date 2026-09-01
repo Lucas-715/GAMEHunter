@@ -1,0 +1,15 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+async function check() {
+  const witcher = await prisma.game.findFirst({
+    where: { name: { contains: 'Witcher 3', mode: 'insensitive' } },
+    include: { priceHistory: { include: { store: true } } }
+  });
+  console.log(witcher?.name);
+  console.log(witcher?.priceHistory.map(p => ({
+    store: p.store.name,
+    link: p.link
+  })));
+}
+check();
