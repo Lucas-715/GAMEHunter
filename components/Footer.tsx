@@ -1,6 +1,8 @@
 'use client';
 import React from 'react';
-import { Gamepad2, MessageCircle, AtSign, Share2 } from 'lucide-react';
+import Link from 'next/link';
+import { MessageCircle, Heart, Globe, Share2 } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const Footer: React.FC = () => {
   return (
@@ -10,61 +12,86 @@ export const Footer: React.FC = () => {
           
           {/* Brand Col */}
           <div className="md:col-span-1 space-y-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Gamepad2 size={32} strokeWidth={2.5} />
-              <span className="text-2xl font-black tracking-tight text-foreground">Game<span className="text-primary">Hunter</span></span>
-            </div>
+            <Link href="/" className="flex items-center gap-2 group w-fit">
+              <Logo size={36} />
+              <span className="text-2xl font-black tracking-tight text-foreground">
+                Game<span className="text-primary">Hunter</span>
+              </span>
+            </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Sua plataforma definitiva para comparar preços, monitorar descontos e descobrir as melhores ofertas de jogos em lojas oficiais.
+              Plataforma gamer para rastrear preços, detectar menores valores históricos e receber alertas quando o preço ideal for atingido.
             </p>
             <div className="flex gap-4 pt-2">
-              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Twitter">
-                <AtSign size={20} />
-              </button>
-              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="Discord">
-                <MessageCircle size={20} />
-              </button>
-              <button className="text-muted-foreground hover:text-primary transition-colors" aria-label="GitHub">
-                <Share2 size={20} />
-              </button>
+              <a 
+                href="https://twitter.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+                aria-label="Twitter / X da GameHunter"
+              >
+                <Share2 size={19} />
+              </a>
+              <a 
+                href="https://discord.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+                aria-label="Discord da Comunidade GameHunter"
+              >
+                <MessageCircle size={19} />
+              </a>
+              <a 
+                href="https://github.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-muted-foreground hover:text-primary transition-colors p-1"
+                aria-label="Comunidade Aberta"
+              >
+                <Globe size={19} />
+              </a>
             </div>
           </div>
 
-          {/* Links Cols */}
+          {/* Links de Plataforma */}
           <div>
-            <h3 className="font-semibold mb-4 text-foreground">Plataforma</h3>
+            <h3 className="font-semibold mb-4 text-foreground text-sm uppercase tracking-wider">Explorar</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><a href="/about" className="hover:text-primary transition-colors">Sobre Nós</a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">Como funciona</a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">Lojas Parceiras</a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">Blog</a></li>
+              <li><Link href="/" className="hover:text-primary transition-colors">Painel de Ofertas</Link></li>
+              <li><Link href="/wishlist" className="hover:text-primary transition-colors">Alertas & Wishlist</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">Como Funciona o Score</Link></li>
+              <li><Link href="/about" className="hover:text-primary transition-colors">Lojas Monitoradas</Link></li>
             </ul>
           </div>
           
+          {/* Suporte */}
           <div>
-            <h3 className="font-semibold mb-4 text-foreground">Suporte</h3>
+            <h3 className="font-semibold mb-4 text-foreground text-sm uppercase tracking-wider">Suporte</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><a href="/contact" className="hover:text-primary transition-colors">Central de Ajuda</a></li>
-              <li><a href="/privacy" className="hover:text-primary transition-colors">Termos de Uso</a></li>
-              <li><a href="/privacy" className="hover:text-primary transition-colors">Política de Privacidade</a></li>
-              <li><a href="/contact" className="hover:text-primary transition-colors">Contato</a></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Fale Conosco</Link></li>
+              <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacidade e Dados</Link></li>
+              <li><Link href="/contact" className="hover:text-primary transition-colors">Sugerir Nova Loja</Link></li>
             </ul>
           </div>
 
+          {/* Recursos Gamer */}
           <div>
-            <h3 className="font-semibold mb-4 text-foreground">Ferramentas</h3>
+            <h3 className="font-semibold mb-4 text-foreground text-sm uppercase tracking-wider">Recursos</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><a href="/about" className="hover:text-primary transition-colors flex items-center gap-2">Extensão Chrome <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/20 text-primary font-medium">NOVO</span></a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">Importador Steam</a></li>
-              <li><a href="/about" className="hover:text-primary transition-colors">API para Desenvolvedores</a></li>
+              <li className="flex items-center gap-2">
+                <span className="text-foreground font-medium">Steam Import</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/20 text-primary font-bold">ATIVO</span>
+              </li>
+              <li className="text-xs text-muted-foreground">
+                Atualização em tempo real de Steam, GOG, Nuuvem e Green Man Gaming.
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} GameHunter. Todos os direitos reservados.</p>
-          <p className="flex items-center gap-1">
-            Feito com <span className="text-danger">♥</span> para gamers.
+          <p>© {new Date().getFullYear()} GameHunter. Preços sujeitos a alteração pelos lojistas.</p>
+          <p className="flex items-center gap-1.5 font-medium">
+            Desenvolvido para caçadores de ofertas <Heart size={14} className="text-primary fill-primary" />
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { priceAggregator } from '@/lib/prices/price-aggregator';
+import { sendPriceAlertEmail } from '@/lib/email/resend';
 
 // Set standard timeout context for Edge/Serverless depending on deployment if needed
 export const maxDuration = 60; // 60 seconds is the max for Vercel Hobby plan
@@ -45,8 +46,16 @@ export async function GET(request: Request) {
       try {
         const aggregation = await priceAggregator.getGamePrices(game);
         
+        let newLowestPrice = Infinity;
+        let lowestPriceOffer = null;
+
         // Upsert stores and insert price history
         for (const offer of aggregation) {
+          if (offer.price < newLowestPrice) {
+            newLowestPrice = offer.price;
+            lowestPriceOffer = offer;
+          }
+
           const store = await prisma.store.upsert({
             where: { name: offer.name },
             update: {}, // Already exists, do nothing
@@ -67,6 +76,42 @@ export async function GET(request: Request) {
               storeId: store.id,
             },
           });
+        }
+
+        // Check alerts if we have a valid price
+        if (newLowestPrice !== Infinity && lowestPriceOffer) {
+          const triggeredAlerts = await prisma.alert.findMany({
+            where: {
+              gameId: game.id,
+              status: 'ACTIVE',
+              conditionValue: {
+                gte: newLowestPrice
+              }
+            },
+            include: {
+              user: true
+            }
+          });
+
+          for (const alert of triggeredAlerts) {
+            // Send email
+            await sendPriceAlertEmail(
+              alert.user.email,
+              alert.user.name || '',
+              game.name,
+              alert.conditionValue,
+              newLowestPrice,
+              lowestPriceOffer.name,
+              lowestPriceOffer.url,
+              game.coverImageUrl || undefined
+            );
+
+            // Mark as triggered
+            await prisma.alert.update({
+              where: { id: alert.id },
+              data: { status: 'TRIGGERED' }
+            });
+          }
         }
 
         // Update the game to reflect new info and touch updatedAt

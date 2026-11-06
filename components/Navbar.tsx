@@ -1,6 +1,8 @@
 'use client';
-import React from 'react';
-import { Search, Bell, User, Gamepad2, Heart, TrendingUp, Grid } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, Grid, Heart, ShoppingCart, Key, User } from 'lucide-react';
+import { Logo } from './Logo';
+import { useSession } from 'next-auth/react';
 
 interface NavbarProps {
   currentView: string;
@@ -9,6 +11,9 @@ interface NavbarProps {
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
   unreadNotifications: number;
+  cartCount?: number;
+  onOpenCart?: () => void;
+  onOpenLibrary?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -17,82 +22,154 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearch,
   onOpenNotifications,
   onOpenProfile,
-  unreadNotifications
+  unreadNotifications,
+  cartCount = 0,
+  onOpenCart,
+  onOpenLibrary
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('global-search-input');
+        if (searchInput) searchInput.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    onSearch(val);
+  };
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+    <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 transition-all duration-300">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-3">
         
-        {/* Logo */}
+        {/* Logo GameHunter com duas espadas e controle */}
         <div 
-          className="flex items-center gap-2 text-primary cursor-pointer group shrink-0"
-          onClick={() => onNavigate('dashboard')}
+          className="flex items-center gap-2 cursor-pointer group shrink-0"
+          onClick={() => {
+            setSearchTerm('');
+            onNavigate('dashboard');
+          }}
+          title="Ir para a página inicial"
         >
-          <Gamepad2 size={28} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform duration-300" />
+          <Logo size={36} />
           <span className="text-xl font-black tracking-tight text-foreground hidden sm:block">
             Game<span className="text-primary">Hunter</span>
           </span>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex-1 max-w-2xl px-4 relative">
+        {/* Barra de Busca com atalho */}
+        <div className="flex-1 max-w-xl px-2 relative">
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} />
             <input 
+              id="global-search-input"
               type="text"
-              placeholder="Buscar jogos..."
-              onChange={(e) => onSearch(e.target.value)}
-              className="w-full bg-secondary/50 border border-border rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary/50 focus:bg-background focus:ring-1 focus:ring-primary/50 transition-all"
+              placeholder="Buscar jogos na loja (ex: Elden Ring, Cyberpunk, GTA)..."
+              value={searchTerm}
+              onChange={handleInputChange}
+              className="w-full bg-secondary/50 border border-border rounded-full pl-10 pr-16 py-2 text-sm focus:outline-none focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder:text-muted-foreground"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 hidden md:flex">
-              <kbd className="px-1.5 py-0.5 rounded border border-border bg-background text-[10px] text-muted-foreground font-mono">⌘</kbd>
-              <kbd className="px-1.5 py-0.5 rounded border border-border bg-background text-[10px] text-muted-foreground font-mono">K</kbd>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex gap-1 hidden md:flex items-center pointer-events-none">
+              <kbd className="px-1.5 py-0.5 rounded border border-border bg-background/80 text-[10px] text-muted-foreground font-mono">Ctrl</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-border bg-background/80 text-[10px] text-muted-foreground font-mono">K</kbd>
             </div>
           </div>
         </div>
 
-        {/* Navigation & Actions */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        {/* Navegação e Ações */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           
           <button 
-            onClick={() => onNavigate('dashboard')}
-            className={`p-2 sm:px-3 sm:py-2 rounded-md flex items-center gap-2 transition-colors ${currentView === 'dashboard' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'}`}
-            aria-label="Descobrir"
+            onClick={() => {
+              setSearchTerm('');
+              onNavigate('dashboard');
+            }}
+            className={`p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1.5 transition-all font-medium text-xs ${currentView === 'dashboard' ? 'text-primary bg-primary/10 border border-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}
+            title="Descobrir Melhores Ofertas"
           >
-            <Grid size={20} />
-            <span className="text-sm font-medium hidden lg:block">Descobrir</span>
+            <Grid size={17} />
+            <span className="hidden lg:block">Loja & Ofertas</span>
           </button>
 
           <button 
             onClick={() => onNavigate('wishlist')}
-            className={`p-2 sm:px-3 sm:py-2 rounded-md flex items-center gap-2 transition-colors ${currentView === 'wishlist' ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'}`}
-            aria-label="Alertas"
+            className={`p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1.5 transition-all font-medium text-xs ${currentView === 'wishlist' ? 'text-primary bg-primary/10 border border-primary/20' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}
+            title="Meus Alertas de Preço"
           >
-            <Heart size={20} />
-            <span className="text-sm font-medium hidden lg:block">Alertas</span>
+            <Heart size={17} />
+            <span className="hidden lg:block">Alertas</span>
           </button>
 
-          <div className="w-px h-6 bg-border mx-1 sm:mx-2 hidden sm:block"></div>
+          {onOpenLibrary && (
+            <button 
+              onClick={onOpenLibrary}
+              className="p-2 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1.5 transition-all font-medium text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+              title="Minhas Keys Compradas"
+            >
+              <Key size={17} />
+              <span className="hidden xl:block">Minhas Keys</span>
+            </button>
+          )}
 
-          {/* Notifications */}
+          <div className="w-px h-6 bg-border mx-1 hidden sm:block" />
+
+          {/* Carrinho de Compras */}
+          {onOpenCart && (
+            <button 
+              onClick={onOpenCart}
+              className={`p-2 rounded-full relative transition-all ${cartCount > 0 ? 'text-primary bg-primary/10 border border-primary/30' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}
+              title="Carrinho de Compras"
+            >
+              <ShoppingCart size={19} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-black text-[10px] font-black rounded-full flex items-center justify-center shadow-md">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Notificações */}
           <button 
             onClick={onOpenNotifications}
-            className={`p-2 rounded-full relative transition-colors ${unreadNotifications > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'}`}
-            aria-label="Notificações"
+            className={`p-2 rounded-full relative transition-all ${unreadNotifications > 0 ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'}`}
+            title={unreadNotifications > 0 ? `${unreadNotifications} nova(s) notificação(ões)` : 'Notificações'}
           >
-            <Bell size={20} />
+            <Bell size={19} />
             {unreadNotifications > 0 && (
-              <span className="absolute top-1 right-1.5 w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+              <span className="absolute top-1 right-1.5 w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.9)]" />
             )}
           </button>
 
-          {/* Profile */}
+          {/* Perfil / Login / Visitante */}
           <button 
             onClick={onOpenProfile}
-            className="p-1 rounded-full border border-border hover:border-primary transition-colors ml-1 w-9 h-9 overflow-hidden"
-            aria-label="Perfil"
+            className="px-2.5 py-1.5 rounded-full border border-border hover:border-primary/60 transition-all ml-1 flex items-center gap-1.5 bg-secondary/80 text-xs font-bold"
+            title={session?.user ? `Logado como ${session.user.name || session.user.email}` : "Modo Visitante (Clique para Entrar ou Criar Conta)"}
           >
-            <img src="/mascot.jpg" alt="Mascote" className="w-full h-full object-cover" />
+            {session?.user ? (
+              <>
+                <div className="w-5 h-5 rounded-full bg-primary text-black font-black text-[10px] flex items-center justify-center">
+                  {session.user.name?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="hidden md:inline text-foreground max-w-[90px] truncate">{session.user.name}</span>
+              </>
+            ) : (
+              <>
+                <User size={15} className="text-primary" />
+                <span className="hidden md:inline text-foreground">Entrar</span>
+              </>
+            )}
           </button>
         </div>
 

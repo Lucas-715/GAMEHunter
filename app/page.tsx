@@ -1,11 +1,12 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { DashboardView } from '@/components/DashboardView';
 import { SearchResultsView } from '@/components/SearchResultsView';
 import { GameDetailView } from '@/components/GameDetailView';
 import { WishlistAlertsView } from '@/components/WishlistAlertsView';
 import { Footer } from '@/components/Footer';
+import { PiggyBank } from 'lucide-react';
 
 // Modals
 import { ProfileModal } from '@/components/ProfileModal';
@@ -13,10 +14,11 @@ import { NotificationModal } from '@/components/NotificationModal';
 import { NewAlertModal } from '@/components/NewAlertModal';
 import { SavingsModal } from '@/components/SavingsModal';
 import { SteamImportModal } from '@/components/SteamImportModal';
+import { CartModal, CartItem } from '@/components/CartModal';
 
-// Mock Data (temporary for missing features)
-import { mockFreeGames, mockNotifications, mockAlerts } from '@/lib/gamesData';
-import { GameItem } from '@/lib/types';
+// Mock Data
+import { mockFreeGames, mockNotifications } from '@/lib/gamesData';
+import { GameItem, WishlistAlert } from '@/lib/types';
 
 export default function Home() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'search', 'game-detail', 'wishlist'
@@ -26,8 +28,72 @@ export default function Home() {
   // API State
   const [dashboardGames, setDashboardGames] = useState<GameItem[]>([]);
   const [searchResults, setSearchResults] = useState<GameItem[]>([]);
+  const [userAlerts, setUserAlerts] = useState<WishlistAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Cart & Store State
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartInitialTab, setCartInitialTab] = useState<'cart' | 'checkout' | 'library'>('cart');
+
+  // Modals state
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isNewAlertOpen, setIsNewAlertOpen] = useState(false);
+  const [isSavingsOpen, setIsSavingsOpen] = useState(false);
+  const [isSteamImportOpen, setIsSteamImportOpen] = useState(false);
+
+  // Notifications State
+  const [notifications, setNotifications] = useState(mockNotifications);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Carrega carrinho salvo do localStorage
+  useEffect(() => {
+    const savedCart = localStorage.getItem('gamehunter_cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {
+        setCart([]);
+      }
+    }
+  }, []);
+
+  const saveCart = (newCart: CartItem[]) => {
+    setCart(newCart);
+    localStorage.setItem('gamehunter_cart', JSON.stringify(newCart));
+  };
+
+  const handleAddToCart = (game: GameItem, storeName?: string, customPrice?: number) => {
+    const bestStore = game.stores?.[0];
+    const finalPrice = customPrice ?? bestStore?.price ?? game.allTimeLow?.price ?? 99.90;
+    const finalStore = storeName ?? bestStore?.name ?? 'Steam';
+
+    const newItem: CartItem = {
+      gameId: game.id,
+      name: game.name,
+      price: finalPrice,
+      storeName: finalStore,
+      coverImageUrl: game.coverImageUrl,
+      platform: finalStore.toLowerCase().includes('gog') ? 'GOG DRM-Free Key' : 'Chave Steam Oficial',
+    };
+
+    const exists = cart.some(i => i.gameId === game.id);
+    if (!exists) {
+      saveCart([...cart, newItem]);
+    }
+    setCartInitialTab('cart');
+    setIsCartOpen(true);
+  };
+
+  const handleRemoveFromCart = (gameId: string) => {
+    saveCart(cart.filter(i => i.gameId !== gameId));
+  };
+
+  const handleClearCart = () => {
+    saveCart([]);
+  };
 
   // Fetch Dashboard Data
   useEffect(() => {
@@ -41,13 +107,11 @@ export default function Home() {
           setErrorMsg(data.error);
         }
 
-        // As featured e opportunities vêm da API já mapeadas para GameItem
         let combined: any[] = [];
         if (data.featured) combined = [...combined, ...data.featured];
         if (data.opportunities) combined = [...combined, ...data.opportunities];
-        if (data.games) combined = [...data.games]; // Caso a API retorne 'games'
+        if (data.games) combined = [...combined, ...data.games];
         
-        // Remove duplicates by ID
         const uniqueGames = Array.from(new Map(combined.map(item => [item.id, item])).values()) as GameItem[];
         setDashboardGames(uniqueGames);
       } catch (err) {
@@ -59,32 +123,57 @@ export default function Home() {
     fetchDashboard();
   }, []);
 
-  // Modals state
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isNewAlertOpen, setIsNewAlertOpen] = useState(false);
-  const [isSavingsOpen, setIsSavingsOpen] = useState(false);
-  const [isSteamImportOpen, setIsSteamImportOpen] = useState(false);
+  // Fetch Alerts Data
+  const fetchAlerts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/alerts');
+      let apiAlerts: WishlistAlert[] = [];
+      if (res.ok) {
+        const data = await res.json();
+        apiAlerts = (data.alerts || []).map((alert: any) => {
+          const latestPrice = alert.game?.priceHistory?.[0]?.price || 0;
+          const storeName = alert.game?.priceHistory?.[0]?.store?.name || 'Várias Lojas';
+          
+          return {
+            id: alert.id,
+            gameId: alert.gameId,
+            gameName: alert.game?.name || 'Desconhecido',
+            targetPrice: alert.conditionValue,
+            currentPrice: latestPrice,
+            store: storeName,
+            image: alert.game?.coverImageUrl || '',
+            active: alert.status === 'ACTIVE'
+          };
+        });
+      }
 
-  // Notifications State
-  const [notifications, setNotifications] = useState(mockNotifications);
+      const local = JSON.parse(localStorage.getItem('gamehunter_local_alerts') || '[]');
+      const combined = [...apiAlerts, ...local];
+      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values()) as WishlistAlert[];
+      setUserAlerts(unique);
+    } catch (err) {
+      const local = JSON.parse(localStorage.getItem('gamehunter_local_alerts') || '[]');
+      setUserAlerts(local);
+    }
+  }, []);
 
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
 
   // Debounce the search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 500);
+    }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch when debounced query changes
+  // Fetch search results
   useEffect(() => {
     const fetchSearch = async () => {
       if (debouncedQuery.trim().length > 0) {
         try {
-          // Add a cache-busting timestamp to prevent Vercel from serving stale edges
           const res = await fetch(`/api/games/search?q=${encodeURIComponent(debouncedQuery)}&t=${Date.now()}`);
           const data = await res.json();
           setSearchResults(data.games || []);
@@ -107,30 +196,29 @@ export default function Home() {
   };
 
   const handleSelectGame = (gameId: string) => {
-    // Find game in dashboard, search, or mock
-    const game = dashboardGames.find(g => g.id === gameId) || searchResults.find(g => g.id === gameId);
+    const localMatch = dashboardGames.find(g => g.id === gameId) || searchResults.find(g => g.id === gameId);
     
-    // We always want to fetch fresh full details from /api/games/[id] 
-    // because dashboard/search only have 1 store and no full priceHistory
-    fetch(`/api/games/${gameId}`)
+    // Abre imediatamente com os dados locais se já tivermos para resposta instantânea, e atualiza em seguida
+    if (localMatch) {
+      setSelectedGame(localMatch);
+      setCurrentView('game-detail');
+    }
+
+    fetch(`/api/games/${encodeURIComponent(gameId)}`)
       .then(res => res.json())
       .then(data => {
         if (data.game) {
           setSelectedGame(data.game);
           setCurrentView('game-detail');
-        } else if (game) {
-          // Fallback to basic info if details fetch fails but we have it locally
-          setSelectedGame(game);
-          setCurrentView('game-detail');
         }
       })
       .catch(err => {
-        console.error("Failed to load game details", err);
-        if (game) {
-          setSelectedGame(game);
-          setCurrentView('game-detail');
-        }
+        console.warn("Using local game details fallback", err);
       });
+  };
+
+  const handleAlertCreated = (newAlert: any) => {
+    setUserAlerts(prev => [newAlert, ...prev]);
   };
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
@@ -148,6 +236,15 @@ export default function Home() {
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
         unreadNotifications={unreadNotificationsCount}
+        cartCount={cart.length}
+        onOpenCart={() => {
+          setCartInitialTab('cart');
+          setIsCartOpen(true);
+        }}
+        onOpenLibrary={() => {
+          setCartInitialTab('library');
+          setIsCartOpen(true);
+        }}
       />
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
@@ -158,11 +255,13 @@ export default function Home() {
             onSelectGame={handleSelectGame}
             onClaimFreeGame={(id) => {
               const game = mockFreeGames.find(g => g.id === id);
-              if (game && game.claimUrl) {
+              if (game && game.claimUrl && game.claimUrl !== '#') {
                 window.open(game.claimUrl, '_blank');
+              } else {
+                window.open('https://store.epicgames.com/pt-BR/free-games', '_blank');
               }
             }}
-            onQuickBuy={(game) => console.log('Buy', game.name)}
+            onQuickBuy={(game) => handleAddToCart(game)}
             isLoading={isLoading}
             errorMsg={errorMsg}
           />
@@ -173,6 +272,7 @@ export default function Home() {
             query={searchQuery}
             games={searchResults}
             onSelectGame={handleSelectGame}
+            onAddToCart={(game) => handleAddToCart(game)}
           />
         )}
 
@@ -180,21 +280,35 @@ export default function Home() {
           <GameDetailView 
             game={selectedGame}
             onBack={() => setCurrentView(searchQuery ? 'search' : 'dashboard')}
+            onAddToCart={handleAddToCart}
           />
         )}
 
         {currentView === 'wishlist' && (
           <WishlistAlertsView 
-            alerts={mockAlerts}
+            alerts={userAlerts}
             onNewAlert={() => setIsNewAlertOpen(true)}
             onImportSteam={() => setIsSteamImportOpen(true)}
+            onRefreshAlerts={fetchAlerts}
           />
         )}
       </main>
 
       <Footer />
 
-      {/* Modals */}
+      {/* Botão Flutuante de Economia */}
+      <button 
+        onClick={() => setIsSavingsOpen(true)}
+        className="fixed bottom-6 right-6 z-40 bg-card border border-primary/40 text-foreground px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 hover:border-primary hover:bg-primary/10 transition-all group backdrop-blur-md"
+        title="Ver métricas de economia acumulada"
+      >
+        <div className="p-1.5 bg-primary/20 text-primary rounded-full group-hover:scale-110 transition-transform">
+          <PiggyBank size={16} />
+        </div>
+        <span className="text-xs font-bold font-mono">Economia</span>
+      </button>
+
+      {/* Modais */}
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <NotificationModal 
         isOpen={isNotificationsOpen} 
@@ -204,15 +318,28 @@ export default function Home() {
         onClearAll={() => setNotifications([])}
         onDelete={(id) => setNotifications(prev => prev.filter(n => n.id !== id))}
       />
-      <NewAlertModal isOpen={isNewAlertOpen} onClose={() => setIsNewAlertOpen(false)} />
-      <SavingsModal isOpen={isSavingsOpen} onClose={() => setIsSavingsOpen(false)} />
-      <SteamImportModal isOpen={isSteamImportOpen} onClose={() => setIsSteamImportOpen(false)} />
-      
-      {/* Easter Egg / Quick trigger for savings modal for demo purposes */}
-      <button 
-        onClick={() => setIsSavingsOpen(true)}
-        className="fixed bottom-4 right-4 w-10 h-10 bg-success/20 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-        aria-label="Ver Economia"
+      <NewAlertModal 
+        isOpen={isNewAlertOpen} 
+        onClose={() => setIsNewAlertOpen(false)} 
+        onAlertCreated={handleAlertCreated}
+      />
+      <SavingsModal 
+        isOpen={isSavingsOpen} 
+        onClose={() => setIsSavingsOpen(false)} 
+        gamesTracked={userAlerts.length || 8}
+      />
+      <SteamImportModal 
+        isOpen={isSteamImportOpen} 
+        onClose={() => setIsSteamImportOpen(false)} 
+        onImportSuccess={() => fetchAlerts()}
+      />
+      <CartModal
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cart={cart}
+        onRemoveFromCart={handleRemoveFromCart}
+        onClearCart={handleClearCart}
+        initialTab={cartInitialTab}
       />
     </div>
   );

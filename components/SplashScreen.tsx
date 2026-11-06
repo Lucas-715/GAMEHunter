@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import Logo from "./Logo";
 import styles from "./SplashScreen.module.css";
 
 export default function SplashScreen() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    // The CSS animation takes 0.5s and has a 1.5s delay (total 2s).
-    // We remove it from DOM after 2 seconds.
     const timer = setTimeout(() => {
       setShow(false);
-    }, 2000);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
@@ -21,15 +19,15 @@ export default function SplashScreen() {
 
   return (
     <div className={styles.splashContainer} role="alert" aria-busy="true" aria-label="Carregando GameHunter">
-      <Image
-        src="/logo.jpg"
-        alt="Logo do GameHunter"
-        width={200}
-        height={200}
-        className={styles.logo}
-        priority
-      />
-      <h1 className={styles.title}>GAMEHUNTER</h1>
+      <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-500">
+        <Logo size={120} />
+        <h1 className="text-3xl font-black tracking-widest text-foreground font-mono mt-2">
+          GAME<span className="text-primary">HUNTER</span>
+        </h1>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
+          Caçador de Ofertas & Alertas
+        </p>
+      </div>
     </div>
   );
 }
