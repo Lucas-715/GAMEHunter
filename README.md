@@ -1,10 +1,10 @@
-# 🎯🎮 GameHunter — Plataforma de Venda de Keys, Comparação de Preços & Alertas
+# 🦖🎮 GameHunter — Plataforma de Venda de Keys, Comparação de Preços & Alertas
 
 Repositório Oficial: [https://github.com/Lucas-715/GAMEHunter](https://github.com/Lucas-715/GAMEHunter)
 
 O **GameHunter** é uma plataforma completa para comercialização de chaves digitais (Keys), comparação de preços em tempo real entre lojas oficiais e monitoramento inteligente de descontos para jogos de PC.
 
-A identidade visual do projeto traz o emblema tático **Hunter Lock-On**: um **escudo hexagonal cyber com mira sniper de precisão, radar de escaneamento e um controle Predator com visor luminoso em "V"**, acompanhado de **efeitos visuais interativos de fundo e mouse** (grade tática revelada pelo cursor, radar de partículas reativas e retícula caçadora animada).
+A identidade visual do projeto traz o emblema **Brutal Rex**: um **dinossauro predador verde esmeralda em estilo e-sports** (com presas afiadas, cicatriz de batalha, olho reptiliano brilhante e marcas de garras no escudo), acompanhado de **efeitos interativos de fundo com temática do sistema** (hologramas flutuantes de descontos `-50%`/`-75%`/`-90%`, ícones de Keys digitais, controles, etiquetas de preço e paralaxe 3D que reagem suavemente ao movimento do mouse).
 
 ---
 

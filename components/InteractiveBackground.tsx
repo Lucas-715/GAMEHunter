@@ -1,36 +1,49 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 
-interface Particle {
+type FloaterKind = "discount" | "gamepad" | "key" | "tag" | "ember";
+
+interface FloaterItem {
   x: number;
   y: number;
   vx: number;
   vy: number;
+  depth: number; // 0.3 to 1.0 for 3D parallax
   size: number;
-  color: string;
+  rotation: number;
+  vRot: number;
   alpha: number;
-  pulseSpeed: number;
-  pulseOffset: number;
+  kind: FloaterKind;
+  label: string;
+  highlight: number; // 0 to 1 when mouse is near
 }
 
-interface TrailPoint {
+interface ClickRipple {
   x: number;
   y: number;
+  radius: number;
+  maxRadius: number;
   alpha: number;
-  size: number;
-  color: string;
 }
+
+const DISCOUNT_LABELS = [
+  "-50%",
+  "-75%",
+  "-85%",
+  "-90%",
+  "KEY",
+  "R$",
+  "STEAM",
+  "-60%",
+  "LOW",
+  "+XP",
+];
 
 export default function InteractiveBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const spotlightRef = useRef<HTMLDivElement | null>(null);
-  const gridRevealRef = useRef<HTMLDivElement | null>(null);
-  const cursorRingRef = useRef<HTMLDivElement | null>(null);
-  const cursorDotRef = useRef<HTMLDivElement | null>(null);
-
-  const [isHoveringInteractive, setIsHoveringInteractive] = useState(false);
-  const [isClicking, setIsClicking] = useState(false);
+  const ambientGlowRef = useRef<HTMLDivElement | null>(null);
+  const gridLayerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -47,27 +60,41 @@ export default function InteractiveBackground() {
       y: height / 2,
       targetX: width / 2,
       targetY: height / 2,
-      ringX: width / 2,
-      ringY: height / 2,
+      vx: 0,
+      vy: 0,
+      lastX: width / 2,
+      lastY: height / 2,
       active: false,
     };
 
-    const colors = ["#8B5CF6", "#06B6D4", "#10B981", "#A855F7"];
-    const particleCount = Math.min(55, Math.floor((width * height) / 24000));
-    const particles: Particle[] = [];
-    const trail: TrailPoint[] = [];
+    const kinds: FloaterKind[] = [
+      "discount",
+      "gamepad",
+      "key",
+      "tag",
+      "ember",
+      "ember",
+    ];
+    const itemCount = Math.min(44, Math.max(24, Math.floor((width * height) / 36000)));
+    const items: FloaterItem[] = [];
+    const ripples: ClickRipple[] = [];
 
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
+    for (let i = 0; i < itemCount; i++) {
+      const kind = kinds[i % kinds.length];
+      const depth = 0.35 + Math.random() * 0.65;
+      items.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.45,
-        vy: (Math.random() - 0.5) * 0.45,
-        size: Math.random() * 2.2 + 0.8,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        alpha: Math.random() * 0.55 + 0.15,
-        pulseSpeed: Math.random() * 0.02 + 0.01,
-        pulseOffset: Math.random() * Math.PI * 2,
+        vx: (Math.random() - 0.5) * 0.25 * depth,
+        vy: (-0.18 - Math.random() * 0.32) * depth, // Gently rising like deals/loot
+        depth,
+        size: (kind === "ember" ? 3 : 14) * (0.7 + depth * 0.5),
+        rotation: (Math.random() - 0.5) * 0.5,
+        vRot: (Math.random() - 0.5) * 0.004,
+        alpha: (kind === "ember" ? 0.32 : 0.11) * depth,
+        kind,
+        label: DISCOUNT_LABELS[i % DISCOUNT_LABELS.length],
+        highlight: 0,
       });
     }
 
@@ -77,163 +104,198 @@ export default function InteractiveBackground() {
       height = canvas.height = window.innerHeight;
     };
 
-    let lastTrailTime = 0;
     const handleMouseMove = (e: MouseEvent) => {
+      mouse.vx = e.clientX - mouse.lastX;
+      mouse.vy = e.clientY - mouse.lastY;
+      mouse.lastX = e.clientX;
+      mouse.lastY = e.clientY;
       mouse.targetX = e.clientX;
       mouse.targetY = e.clientY;
       mouse.active = true;
-
-      const now = performance.now();
-      if (now - lastTrailTime > 16) {
-        const dx = e.clientX - mouse.x;
-        const dy = e.clientY - mouse.y;
-        const speed = Math.hypot(dx, dy);
-        if (speed > 2) {
-          trail.push({
-            x: e.clientX,
-            y: e.clientY,
-            alpha: Math.min(0.55, speed / 45),
-            size: Math.min(4, Math.max(1.5, speed / 12)),
-            color: speed > 22 ? "#10B981" : "#8B5CF6",
-          });
-          if (trail.length > 22) trail.shift();
-        }
-        lastTrailTime = now;
-      }
-
-      // Check if hovering a clickable element
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const interactive = target.closest(
-          'a, button, input, select, textarea, [role="button"]'
-        );
-        setIsHoveringInteractive(Boolean(interactive));
-      }
     };
 
-    const handleMouseDown = () => setIsClicking(true);
-    const handleMouseUp = () => setIsClicking(false);
+    const handleMouseDown = (e: MouseEvent) => {
+      ripples.push({
+        x: e.clientX,
+        y: e.clientY,
+        radius: 8,
+        maxRadius: 220,
+        alpha: 0.35,
+      });
+    };
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mouseup", handleMouseUp);
 
-    let tick = 0;
+    // Helper functions to draw thematic gaming icons on canvas
+    const drawGamepad = (c: CanvasRenderingContext2D, s: number) => {
+      c.beginPath();
+      c.roundRect(-s, -s * 0.65, s * 2, s * 1.3, s * 0.45);
+      c.stroke();
+      // D-pad cross
+      c.beginPath();
+      c.moveTo(-s * 0.55, 0);
+      c.lineTo(-s * 0.2, 0);
+      c.moveTo(-s * 0.375, -s * 0.18);
+      c.lineTo(-s * 0.375, s * 0.18);
+      c.stroke();
+      // Action buttons
+      c.beginPath();
+      c.arc(s * 0.42, -s * 0.1, s * 0.09, 0, Math.PI * 2);
+      c.arc(s * 0.25, s * 0.1, s * 0.09, 0, Math.PI * 2);
+      c.fill();
+    };
+
+    const drawKeyIcon = (c: CanvasRenderingContext2D, s: number) => {
+      // Key bow (ring)
+      c.beginPath();
+      c.arc(-s * 0.45, 0, s * 0.42, 0, Math.PI * 2);
+      c.stroke();
+      // Key shaft & teeth
+      c.beginPath();
+      c.moveTo(-s * 0.03, 0);
+      c.lineTo(s * 0.85, 0);
+      c.lineTo(s * 0.85, s * 0.32);
+      c.moveTo(s * 0.52, 0);
+      c.lineTo(s * 0.52, s * 0.26);
+      c.stroke();
+    };
+
+    const drawPriceTag = (c: CanvasRenderingContext2D, s: number) => {
+      c.beginPath();
+      c.moveTo(-s * 0.85, -s * 0.5);
+      c.lineTo(s * 0.25, -s * 0.5);
+      c.lineTo(s * 0.85, 0);
+      c.lineTo(s * 0.25, s * 0.5);
+      c.lineTo(-s * 0.85, s * 0.5);
+      c.closePath();
+      c.stroke();
+      // Tag hole
+      c.beginPath();
+      c.arc(-s * 0.5, 0, s * 0.12, 0, Math.PI * 2);
+      c.fill();
+    };
+
     const render = () => {
-      tick += 1;
+      // Smooth mouse interpolation
+      mouse.x += (mouse.targetX - mouse.x) * 0.08;
+      mouse.y += (mouse.targetY - mouse.y) * 0.08;
+      mouse.vx *= 0.9;
+      mouse.vy *= 0.9;
 
-      // Smooth interpolation for spotlight and tactical cursor ring
-      mouse.x += (mouse.targetX - mouse.x) * 0.14;
-      mouse.y += (mouse.targetY - mouse.y) * 0.14;
-      mouse.ringX += (mouse.targetX - mouse.ringX) * 0.22;
-      mouse.ringY += (mouse.targetY - mouse.ringY) * 0.22;
+      // Parallax offset relative to screen center
+      const offsetX = (mouse.x - width / 2) / (width / 2);
+      const offsetY = (mouse.y - height / 2) / (height / 2);
 
-      if (spotlightRef.current) {
-        spotlightRef.current.style.background = `
-          radial-gradient(650px circle at ${mouse.x}px ${mouse.y}px, rgba(139, 92, 246, 0.13), rgba(6, 182, 212, 0.05) 40%, transparent 75%)
+      if (ambientGlowRef.current) {
+        ambientGlowRef.current.style.background = `
+          radial-gradient(620px circle at ${mouse.x}px ${mouse.y}px, rgba(34, 197, 94, 0.10), rgba(16, 185, 129, 0.03) 45%, transparent 75%)
         `;
       }
 
-      if (gridRevealRef.current) {
-        gridRevealRef.current.style.maskImage = `radial-gradient(340px circle at ${mouse.x}px ${mouse.y}px, black 0%, transparent 100%)`;
-        gridRevealRef.current.style.webkitMaskImage = `radial-gradient(340px circle at ${mouse.x}px ${mouse.y}px, black 0%, transparent 100%)`;
-      }
-
-      if (cursorRingRef.current) {
-        cursorRingRef.current.style.transform = `translate3d(${mouse.ringX}px, ${mouse.ringY}px, 0)`;
-      }
-      if (cursorDotRef.current) {
-        cursorDotRef.current.style.transform = `translate3d(${mouse.targetX}px, ${mouse.targetY}px, 0)`;
+      if (gridLayerRef.current) {
+        gridLayerRef.current.style.transform = `translate3d(${-offsetX * 18}px, ${-offsetY * 18}px, 0)`;
       }
 
       ctx.clearRect(0, 0, width, height);
 
-      // Draw subtle mouse trail sparks
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const pt = trail[i];
-        pt.alpha *= 0.91;
-        pt.size *= 0.97;
-        if (pt.alpha <= 0.02) {
-          trail.splice(i, 1);
+      // Draw click shockwave ripples (like activating a deal pulse)
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        r.radius += (r.maxRadius - r.radius) * 0.08;
+        r.alpha *= 0.93;
+        if (r.alpha < 0.01) {
+          ripples.splice(i, 1);
           continue;
         }
         ctx.save();
-        ctx.globalAlpha = pt.alpha;
-        ctx.fillStyle = pt.color;
-        ctx.shadowColor = pt.color;
-        ctx.shadowBlur = 8;
+        ctx.strokeStyle = `rgba(34, 197, 94, ${r.alpha})`;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
 
-      // Update & draw particles + radar connections to mouse
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
+      // Update & draw floating gaming/deal elements
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        it.x += it.vx;
+        it.y += it.vy;
+        it.rotation += it.vRot;
 
-        // Wrap around screen edges
-        if (p.x < 0) p.x = width;
-        if (p.x > width) p.x = 0;
-        if (p.y < 0) p.y = height;
-        if (p.y > height) p.y = 0;
+        // Parallax render position
+        const drawX = it.x - offsetX * 28 * it.depth;
+        const drawY = it.y - offsetY * 28 * it.depth;
 
-        const dx = mouse.x - p.x;
-        const dy = mouse.y - p.y;
+        // Wrap around edges smoothly
+        if (it.y < -50) {
+          it.y = height + 40;
+          it.x = Math.random() * width;
+        }
+        if (it.y > height + 50) it.y = -40;
+        if (it.x < -50) it.x = width + 40;
+        if (it.x > width + 50) it.x = -40;
+
+        // React to mouse proximity (gentle breeze + emerald illumination)
+        const dx = drawX - mouse.x;
+        const dy = drawY - mouse.y;
         const dist = Math.hypot(dx, dy);
+        const interactRadius = 185;
 
-        // Subtle tactical radar attraction/orbit when near cursor
-        if (mouse.active && dist < 190 && dist > 1) {
-          const force = (190 - dist) / 190;
-          p.x -= (dx / dist) * force * 0.55;
-          p.y -= (dy / dist) * force * 0.55;
-
-          // Draw radar lock line to cursor
-          ctx.save();
-          ctx.strokeStyle =
-            dist < 95
-              ? `rgba(16, 185, 129, ${(1 - dist / 190) * 0.35})`
-              : `rgba(139, 92, 246, ${(1 - dist / 190) * 0.25})`;
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.stroke();
-          ctx.restore();
+        if (mouse.active && dist < interactRadius && dist > 1) {
+          const proximity = 1 - dist / interactRadius;
+          it.highlight += (proximity - it.highlight) * 0.18;
+          // Gentle push from cursor + subtle mouse breeze
+          it.x += (dx / dist) * proximity * 0.9 + mouse.vx * 0.015 * it.depth;
+          it.y += (dy / dist) * proximity * 0.9 + mouse.vy * 0.015 * it.depth;
+        } else {
+          it.highlight *= 0.94;
         }
 
-        // Connect nearby particles slightly
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const pdx = p.x - p2.x;
-          const pdy = p.y - p2.y;
-          const pDist = Math.hypot(pdx, pdy);
-          if (pDist < 110) {
-            ctx.save();
-            ctx.strokeStyle = `rgba(139, 92, 246, ${(1 - pDist / 110) * 0.08})`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-            ctx.restore();
-          }
-        }
-
-        const pulse =
-          Math.sin(tick * p.pulseSpeed + p.pulseOffset) * 0.2 + 0.8;
+        const activeAlpha = Math.min(0.65, it.alpha + it.highlight * 0.35);
+        const scale = 1 + it.highlight * 0.25;
 
         ctx.save();
-        ctx.globalAlpha = p.alpha * pulse;
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = dist < 160 ? 10 : 4;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.translate(drawX, drawY);
+        ctx.rotate(it.rotation);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = activeAlpha;
+
+        const color = it.highlight > 0.2 ? "#4ADE80" : "#22C55E";
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.4;
+
+        if (it.highlight > 0.15) {
+          ctx.shadowColor = "#22C55E";
+          ctx.shadowBlur = 12 * it.highlight;
+        }
+
+        if (it.kind === "ember") {
+          ctx.beginPath();
+          ctx.arc(0, 0, it.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (it.kind === "gamepad") {
+          drawGamepad(ctx, it.size);
+        } else if (it.kind === "key") {
+          drawKeyIcon(ctx, it.size);
+        } else if (it.kind === "tag") {
+          drawPriceTag(ctx, it.size);
+        } else if (it.kind === "discount") {
+          // Pill badge with discount text (-75%, KEY, R$, etc.)
+          const w = it.size * 2.5;
+          const h = it.size * 1.25;
+          ctx.beginPath();
+          ctx.roundRect(-w / 2, -h / 2, w, h, 5);
+          ctx.stroke();
+          ctx.font = `700 ${Math.round(it.size * 0.72)}px monospace`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(it.label, 0, 0.5);
+        }
+
         ctx.restore();
       }
 
@@ -247,101 +309,37 @@ export default function InteractiveBackground() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
 
   return (
-    <>
-      {/* Ambient Background Layer */}
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
+    >
+      {/* Deep Emerald Predator Ambient Nebulae */}
+      <div className="absolute -top-44 -left-44 h-[520px] w-[520px] rounded-full bg-emerald-500/8 blur-[140px]" />
+      <div className="absolute top-1/3 -right-48 h-[480px] w-[480px] rounded-full bg-green-500/6 blur-[140px]" />
+      <div className="absolute -bottom-48 left-1/3 h-[520px] w-[520px] rounded-full bg-emerald-600/8 blur-[150px]" />
+
+      {/* 3D Parallax Gaming Grid */}
       <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
-      >
-        {/* Slow-drifting ambient glow orbs */}
-        <div className="absolute -top-40 -left-40 h-[520px] w-[520px] rounded-full bg-primary/10 blur-[130px] animate-pulse" />
-        <div
-          className="absolute top-1/3 -right-40 h-[460px] w-[460px] rounded-full bg-cyan-500/8 blur-[130px] animate-pulse"
-          style={{ animationDelay: "1.5s", animationDuration: "6s" }}
-        />
-        <div
-          className="absolute -bottom-48 left-1/3 h-[500px] w-[500px] rounded-full bg-emerald-500/8 blur-[140px] animate-pulse"
-          style={{ animationDelay: "3s", animationDuration: "7s" }}
-        />
+        ref={gridLayerRef}
+        className="absolute -inset-12 opacity-[0.045] transition-transform duration-75 ease-out"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(34, 197, 94, 0.65) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(34, 197, 94, 0.65) 1px, transparent 1px)
+          `,
+          backgroundSize: "56px 56px",
+        }}
+      />
 
-        {/* Base subtle cyber grid */}
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(255,255,255,0.5) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.5) 1px, transparent 1px)
-            `,
-            backgroundSize: "48px 48px",
-          }}
-        />
+      {/* Soft Emerald Mouse Glow */}
+      <div ref={ambientGlowRef} className="absolute inset-0" />
 
-        {/* Interactive Mouse-Revealed Hunter Tactical Grid */}
-        <div
-          ref={gridRevealRef}
-          className="absolute inset-0 opacity-30 transition-opacity duration-300"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(139, 92, 246, 0.35) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(16, 185, 129, 0.28) 1px, transparent 1px)
-            `,
-            backgroundSize: "36px 36px",
-          }}
-        />
-
-        {/* Dynamic Mouse Spotlight Glow */}
-        <div
-          ref={spotlightRef}
-          className="absolute inset-0 transition-opacity duration-300"
-        />
-
-        {/* Interactive Particle & Radar Canvas */}
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
-      </div>
-
-      {/* Tactical Hunter Cursor Reticle (Desktop Only) */}
-      <div
-        ref={cursorRingRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed top-0 left-0 z-[9999] hidden lg:block -translate-x-1/2 -translate-y-1/2"
-      >
-        <div
-          className={`relative flex items-center justify-center rounded-full border transition-all duration-200 ${
-            isClicking
-              ? "h-6 w-6 border-emerald-400 bg-emerald-400/15 scale-90"
-              : isHoveringInteractive
-              ? "h-11 w-11 border-emerald-400/70 bg-primary/10 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-              : "h-8 w-8 border-primary/45 bg-transparent"
-          }`}
-        >
-          {/* Tactical crosshair ticks on the cursor ring */}
-          <span className="absolute -top-1 left-1/2 -translate-x-1/2 h-1.5 w-[1.5px] bg-emerald-400/80" />
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-[1.5px] bg-emerald-400/80" />
-          <span className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-[1.5px] bg-primary/80" />
-          <span className="absolute top-1/2 -right-1 -translate-y-1/2 w-1.5 h-[1.5px] bg-primary/80" />
-        </div>
-      </div>
-
-      {/* Center Micro Dot */}
-      <div
-        ref={cursorDotRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed top-0 left-0 z-[9999] hidden lg:block -translate-x-1/2 -translate-y-1/2"
-      >
-        <div
-          className={`rounded-full transition-all duration-150 ${
-            isHoveringInteractive
-              ? "h-2 w-2 bg-emerald-400 shadow-[0_0_10px_#10B981]"
-              : "h-1.5 w-1.5 bg-primary/80 shadow-[0_0_8px_#8B5CF6]"
-          }`}
-        />
-      </div>
-    </>
+      {/* Floating Deals, Keys, Gamepads & Embers Canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+    </div>
   );
 }
-
