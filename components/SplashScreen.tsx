@@ -8,6 +8,7 @@ export default function SplashScreen() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.webdriver) return;
     const alreadyShown = sessionStorage.getItem("gh_splash_shown");
     if (alreadyShown) return;
     sessionStorage.setItem("gh_splash_shown", "1");

@@ -4,48 +4,58 @@
   <p>
     <strong>Repositório Oficial:</strong> <a href="https://github.com/Lucas-715/GAMEHunter">https://github.com/Lucas-715/GAMEHunter</a>
   </p>
+  <p>
+    <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-eab308?style=for-the-badge" alt="Status: Em Desenvolvimento" />
+    <img src="https://img.shields.io/badge/Fluxos%20e%20Rotas-100%25%20Funcionais-22c55e?style=for-the-badge" alt="100% Funcional" />
+  </p>
 </div>
 
 ---
 
-O **GameHunter** é uma plataforma completa para comercialização de chaves digitais (*Keys*), comparação de preços em tempo real entre lojas oficiais, gamificação de caçadores de ofertas e monitoramento inteligente de descontos para jogos de PC.
+## 🚧 Status do Projeto: Sistema em Desenvolvimento
+
+> **Atenção:** O **GameHunter** é um **sistema em desenvolvimento (protótipo avançado / MVP acadêmico e experimental)**. Apesar de todos os fluxos, telas, banco de dados, carrinho, geração de chaves e rotas da aplicação estarem **100% funcionais e navegáveis de ponta a ponta para testes e demonstração**, o projeto **ainda não está pronto para uso comercial em produção final** (operações financeiras reais de gateway bancário e contratos comerciais de distribuição de chaves encontram-se simulados para fins de desenvolvimento e validação da plataforma).
+
+---
+
+O **GameHunter** é uma plataforma para comercialização de chaves digitais (*Keys*), comparação de preços em tempo real entre lojas oficiais, gamificação de caçadores de ofertas e monitoramento inteligente de descontos para jogos de PC.
 
 A identidade visual do projeto traz a logo oficial **Green Skull Headset** (`public/logo.png`), acompanhada de **efeitos interativos de Universo no fundo** (nebulosas cósmicas, campo estelar 3D com paralaxe ao mover o mouse, constelações dinâmicas, poeira estelar e estrelas cadentes).
 
 ---
 
-## 📸 Imagens do Sistema
+## 📸 Imagens do Sistema Atualizado em Execução
 
-### Visão Geral da Plataforma (Dashboard, Ofertas em Destaque & Oportunidades)
-![Dashboard do Sistema GameHunter](public/screenshots/dashboard-full.jpg)
+### 1. Visão Geral da Plataforma (Dashboard Atualizado, Logo Oficial & Fundo de Universo)
+![Dashboard Atualizado do Sistema GameHunter](public/screenshots/dashboard-atual.png)
 
-### Sistema de Gamificação Interativo (Rank de Caçador, Conquistas & Fundo Estelar)
-![Menu Rank de Caçador e Jogos Grátis](public/screenshots/rank-cacador.jpg)
+### 2. Comparador de Preços entre Lojas, Histórico e Compra de Key
+![Comparador de Lojas e Detalhes do Jogo](public/screenshots/comparador-lojas.png)
 
-### Arquitetura de Módulos do Sistema
-![Arquitetura do Sistema GameHunter](public/screenshots/system-architecture.svg)
+### 3. Gerenciador de Alertas de Preço & Wishlist
+![Gerenciador de Alertas e Wishlist](public/screenshots/alertas-precos.png)
 
 ---
 
 ## 👨‍💻 Autoria e Declaração sobre o Uso de Inteligência Artificial
 
-Este projeto foi idealizado, estruturado e desenvolvido pelo desenvolvedor responsável pelo repositório (**Lucas**), utilizando ferramentas de Inteligência Artificial como apoio técnico pontual durante o ciclo de desenvolvimento:
+Este projeto foi idealizado, estruturado e desenvolvido pelo desenvolvedor responsável pelo repositório (**Lucas**), utilizando ferramentas de Inteligência Artificial de forma pontual como apoio técnico durante o desenvolvimento:
 
 1. **Escopo de Uso da IA:**
    - **Auxílio na Conexão com as APIs Externas:** Suporte na implementação dos adaptadores de comunicação e rotinas de tratamento de *timeout*/contingência para as APIs públicas das lojas de jogos (Steam, GOG, CheapShark, Nuuvem e RAWG).
-   - **Refinamento Visual e de Design:** Apoio pontual no aprimoramento estético de componentes de interface e efeitos visuais interativos de fundo.
+   - **Melhoramento Pontual do Design:** Apoio no refinamento visual de componentes da interface e nos efeitos visuais interativos de fundo.
 2. **Desenvolvimento e Validação Integral pelo Desenvolvedor:**
-   - **Todo o restante do sistema** — incluindo regras de negócio, fluxo de e-commerce, estrutura de rotas, modelagem de dados e integração entre módulos — **foi desenvolvido pelo próprio desenvolvedor com o auxílio da IA**.
-   - **100% do código, ajustes e sugestões gerados com o auxílio da IA foram rigorosamente revisados, testados e validados pelo desenvolvedor**, garantindo total domínio técnico, qualidade e integridade do funcionamento da aplicação.
+   - **Todo o restante do sistema** — incluindo concepção, regras de negócio, fluxo de e-commerce, estrutura de rotas, modelagem de dados e integração entre módulos — **foi feito pelo próprio desenvolvedor com o auxílio da IA**.
+   - **Tudo o que a IA produziu ou sugeriu foi rigorosamente revisado, testado e validado pelo desenvolvedor**, garantindo total controle técnico e conformidade com os objetivos do projeto.
 
 ---
 
-## ⚠️ Nota Técnica Importante: Funcionamento do Sistema vs. Instabilidade das APIs Externas
+## ⚠️ Nota Técnica: Funcionamento do Sistema vs. Instabilidade das APIs Externas
 
-> **O sistema GameHunter é 100% funcional de ponta a ponta.** Todas as rotas de backend, banco de dados, autenticação, carrinho de compras, checkout, geração de chaves, Rank de Caçador, filtros, wishlist e alertas estão integralmente implementados e operacionais.
+> **O sistema GameHunter é totalmente funcional em todas as suas telas e fluxos.** No entanto, por depender de fontes externas públicas para consulta de preços ao vivo, algumas APIs de terceiros apresentam restrições externas.
 
 ### Por que algumas cotações ou links de APIs externas de jogos apresentam limitações?
-O projeto implementa o consumo real de múltiplas APIs e fontes públicas do mercado de jogos (`lib/prices/adapters/` e `lib/search-engine/`). No entanto, **as APIs públicas fornecidas pelas plataformas de jogos possuem restrições e instabilidades externas que fogem ao controle da aplicação**:
+O projeto implementa o consumo real de múltiplas APIs públicas do mercado de jogos (`lib/prices/adapters/` e `lib/search-engine/`), porém **essas APIs externas possuem bloqueios e limites que não dependem do nosso código**:
 
 1. **Steam Storefront API (`store.steampowered.com/api/storesearch` e `appdetails`):**
    - Não é uma API comercial aberta para agregadores; a Valve aplica *rate-limiting* severo por IP e bloqueia frequentemente requisições automatizadas.
@@ -57,91 +67,62 @@ O projeto implementa o consumo real de múltiplas APIs e fontes públicas do mer
    - Sofrem oscilações de latência e exigem chaves de API com limite restrito de requisições mensais.
 
 ### 🛡️ Solução de Contingência Implementada:
-Para que a experiência do usuário e o funcionamento do sistema **nunca sejam prejudicados por quedas, timeouts ou bloqueios 403 das APIs externas**, foi implementada uma **Arquitetura de Contingência Multi-Camadas**:
+Para garantir que o sistema funcione perfeitamente mesmo quando uma API externa falha ou bloqueia a requisição, implementamos uma **Arquitetura de Contingência Multi-Camadas**:
 - Todas as chamadas às APIs externas são executadas com `AbortController` (timeout controlado por adaptador).
 - Quando uma API externa responde normalmente, os preços e metadados ao vivo são exibidos e salvos no histórico do banco (`Prisma`).
 - Caso a API externa falhe, demore ou bloqueie a conexão, o `PriceAggregator` e o `SearchEngine` acionam automaticamente o **Fallback Resiliente** (usando os dados persistidos no banco SQLite/Prisma e no catálogo local estruturado), gerando URLs diretas e funcionais para cada loja (`Steam`, `Nuuvem`, `GOG`, `Green Man Gaming` e `GamersGate`).
 
 ---
 
-## ✨ Funcionalidades Completas do Sistema
+## ✨ Funcionalidades do Sistema
 
-### 1. 🏆 Rank de Caçador e Sistema de Gamificação (`GamificationWidget`)
-- **Progressão Real de Nível e XP:** A barra de XP e o nível do Caçador evoluem em tempo real conforme você interage com o sistema (adicionando Keys ao carrinho, criando alertas de preço, resgatando jogos grátis ou completando missões).
-- **Conquistas Desbloqueáveis com Bônus de XP:** Clique sobre qualquer conquista no card lateral ou em **"Ver todas"** para resgatar recompensas de XP (`+200 XP` a `+400 XP`) ou completar conquistas pendentes.
-- **Missões Diárias Interativas:** Conclua missões rápidas direto pelo painel para ganhar XP extra imediatamente.
-- **Recompensas VIP por Nível:** Conforme seu nível sobe, você desbloqueia e copia com 1 clique cupons exclusivos para usar no carrinho (`HUNTER10`, `HUNTER20` e o cupom VIP `HUNTER25` de 25% OFF ao atingir o Nível 15).
-
-### 2. 🛒 Sistema de Venda de Jogos (Carrinho, Checkout & Entrega de Keys)
+### 1. 🛒 Sistema de Venda de Jogos (Carrinho, Checkout & Entrega de Keys)
 - **Carrinho de Compras Persistente:** Adicione qualquer jogo do catálogo ou da busca ao carrinho com 1 clique.
-- **Cupons de Desconto Funcionais:** Aplique cupons promocionais diretamente no carrinho:
-  - `HUNTER10` (10% de desconto)
-  - `PRIMEIRACOMPRA` (15% de desconto)
-  - `HUNTER20` (20% de desconto)
-  - `HUNTER25` (25% de desconto — desbloqueável no Rank de Caçador Nv. 15)
-- **Checkout Transparente:**
+- **Cupons de Desconto Funcionais:** Aplique cupons promocionais diretamente no carrinho (`HUNTER10`, `PRIMEIRACOMPRA`, `HUNTER20` e `HUNTER25`).
+- **Checkout Transparente (Simulado para Desenvolvimento):**
   - **PIX Instantâneo:** Concede +5% de desconto extra, gera QR Code e código *PIX Copia e Cola*.
   - **Cartão de Crédito:** Simulação completa com validação de campos e parcelamento em até 3x sem juros.
 - **Biblioteca / Minhas Keys (`Orders`):** Após confirmar a compra, o sistema gera automaticamente a **Chave de Ativação Digital (`XXXX-YYYY-ZZZZ-WWWW`)**, permitindo revelar a key, copiá-la para a área de transferência e abrir a página de ativação da Steam.
+
+### 2. 🏆 Rank de Caçador e Sistema de Gamificação (`GamificationWidget`)
+- **Progressão Real de Nível e XP:** A barra de XP e o nível do Caçador evoluem em tempo real conforme você interage com o sistema (adicionando Keys ao carrinho, criando alertas de preço, resgatando jogos grátis ou completando missões).
+- **Conquistas, Missões Diárias e Recompensas VIP:** Clique sobre qualquer conquista ou no cabeçalho do Rank para resgatar XP, concluir missões diárias e desbloquear cupons exclusivos por nível.
 
 ### 3. 🔐 Sistema de Login Flexível (Com ou Sem Login Obrigatório)
 - **Modo Visitante Completo:** Visitantes podem pesquisar jogos, comparar preços, subir de nível no Rank de Caçador, adicionar itens ao carrinho, finalizar compras, criar alertas e favoritar jogos sem obrigatoriedade de login.
 - **Autenticação Completa (`NextAuth` + `bcrypt` + `Prisma`):**
   - Cadastro de novos usuários (`/api/auth/register`) e login seguro (`/api/auth/[...nextauth]`).
   - **Botão "Entrar com Conta Demo (1 Clique)"** no modal de perfil (`demo@gamehunter.com` / `123456`) para testes imediatos.
-  - Painel do usuário com configurações de **Região/Moeda (BRL, USD, EUR)**, **Preferências de Notificação** e **Conexão de Lojas**.
 
 ### 4. 📊 Comparador de Preços, Score Hunter & Alertas
 - **Score Hunter (0 a 100):** Algoritmo que avalia o quão vantajosa é a oferta atual em relação ao menor preço histórico (*Historical Low*) e ao preço cheio de tabela.
-- **Comparativo entre Lojas Oficiais:** Lista lado a lado as cotações da Steam, Nuuvem, GOG, Green Man Gaming e GamersGate.
 - **Gerenciador de Alertas & Importador da Steam:** Crie alertas personalizados por preço alvo, filtre por *Todos*, *Ativos* ou *Atingidos*, edite valores inline e importe sua Wishlist da Steam.
 
 ---
 
-## 🛠️ Stack Tecnológica e Rotas de API
+## 🛠️ Stack Tecnológica
 
 - **Frontend:** Next.js 16 (App Router & Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons.
-- **Backend (Next.js Route Handlers):**
-  - `GET /api/games/dashboard` — Destaques, oportunidades e cache de cotações.
-  - `GET /api/games/search?q=...` — Motor de busca híbrido (Banco Local + Steam API + CheapShark API).
-  - `GET /api/games/[id]` — Detalhes do jogo, agregação ao vivo de lojas e enriquecimento RAWG.
-  - `GET | POST | PATCH | DELETE /api/alerts` — CRUD completo de alertas de preço.
-  - `GET | POST | DELETE /api/wishlist` — Gerenciamento da lista de desejos do usuário.
-  - `POST /api/auth/register` & `/api/auth/[...nextauth]` — Registro e autenticação JWT.
-  - `GET /api/cron/update-prices` — Rotina automatizada para atualização de histórico de preços e disparo de notificações (`Resend`).
-- **Banco de Dados:** Prisma ORM + SQLite (`prisma/dev.db` já pré-populado e pronto para uso local).
+- **Backend:** Next.js Route Handlers (`/api/games/dashboard`, `/api/games/search`, `/api/games/[id]`, `/api/alerts`, `/api/wishlist`, `/api/auth/*`, `/api/cron/update-prices`).
+- **Banco de Dados:** Prisma ORM + SQLite (`prisma/dev.db` já pré-populado para execução local).
 
 ---
 
 ## 🚀 Como Executar o Projeto Localmente
 
-### 1. Clone o repositório
 ```bash
+# 1. Clone o repositório
 git clone https://github.com/Lucas-715/GAMEHunter.git
 cd GAMEHunter
-```
 
-### 2. Instale as dependências
-```bash
+# 2. Instale as dependências
 npm install
-```
 
-### 3. Variáveis de Ambiente (`.env`)
-Crie um arquivo `.env` na raiz do projeto contendo:
-```env
-DATABASE_URL="file:./dev.db"
-CRON_SECRET="super_secret_cron_token_123"
-NEXTAUTH_SECRET="super_secret_for_development"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-### 4. Gere o cliente Prisma
-```bash
+# 3. Gere o cliente Prisma
 npx prisma generate
-```
 
-### 5. Inicie o servidor de desenvolvimento
-```bash
+# 4. Inicie o servidor de desenvolvimento
 npm run dev
 ```
+
 Acesse no navegador: **[http://localhost:3000](http://localhost:3000)**
