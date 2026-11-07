@@ -57,3 +57,4 @@
   <rect x="735" y="250" width="170" height="28" rx="6" fill="#052E16"/>
   <text x="820" y="268" text-anchor="middle" fill="#4ADE80" font-family="monospace" font-weight="700" font-size="11">NextAuth + Prisma ORM</text>
 </svg>
+
