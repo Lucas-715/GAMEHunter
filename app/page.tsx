@@ -82,6 +82,13 @@ export default function Home() {
     const exists = cart.some(i => i.gameId === game.id);
     if (!exists) {
       saveCart([...cart, newItem]);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('gamehunter:xp', {
+            detail: { amount: 150, reason: `Key adicionada: ${game.name}`, achievementId: 'fast_trigger' },
+          })
+        );
+      }
     }
     setCartInitialTab('cart');
     setIsCartOpen(true);
@@ -219,6 +226,13 @@ export default function Home() {
 
   const handleAlertCreated = (newAlert: any) => {
     setUserAlerts(prev => [newAlert, ...prev]);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('gamehunter:xp', {
+          detail: { amount: 200, reason: 'Novo Alerta Ativado', achievementId: 'night_watcher' },
+        })
+      );
+    }
   };
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
@@ -255,6 +269,13 @@ export default function Home() {
             onSelectGame={handleSelectGame}
             onClaimFreeGame={(id) => {
               const game = mockFreeGames.find(g => g.id === id);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('gamehunter:xp', {
+                    detail: { amount: 250, reason: `Resgate Grátis: ${game?.title || 'Jogo'}`, achievementId: 'free_collector' },
+                  })
+                );
+              }
               if (game && game.claimUrl && game.claimUrl !== '#') {
                 window.open(game.claimUrl, '_blank');
               } else {

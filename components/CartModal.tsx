@@ -40,6 +40,7 @@ interface CartModalProps {
 const VALID_COUPONS: Record<string, number> = {
   'HUNTER10': 10,
   'HUNTER20': 20,
+  'HUNTER25': 25,
   'PRIMEIRACOMPRA': 15,
   'GAMER': 10,
 };

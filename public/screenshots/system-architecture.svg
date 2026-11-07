@@ -1,0 +1,59 @@
+<svg width="960" height="340" viewBox="0 0 960 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="340" rx="20" fill="#09090B"/>
+  <rect x="2" y="2" width="956" height="336" rx="18" stroke="#22C55E" stroke-opacity="0.35" stroke-width="2"/>
+  
+  <!-- Cosmic Stars in Preview -->
+  <circle cx="80" cy="48" r="2" fill="#4ADE80" opacity="0.8"/>
+  <circle cx="220" cy="34" r="1.5" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="480" cy="28" r="2.2" fill="#38BDF8" opacity="0.8"/>
+  <circle cx="760" cy="42" r="1.8" fill="#C084FC" opacity="0.7"/>
+  <circle cx="890" cy="60" r="2" fill="#4ADE80" opacity="0.9"/>
+
+  <!-- Header Title -->
+  <text x="480" y="52" text-anchor="middle" fill="#FFFFFF" font-family="monospace" font-weight="900" font-size="20">
+    GAMEHUNTER — ARQUITETURA &amp; ECOSSISTEMA DE FUNCIONALIDADES
+  </text>
+  <text x="480" y="74" text-anchor="middle" fill="#4ADE80" font-family="sans-serif" font-weight="600" font-size="12">
+    Comparador Multi-Lojas • Loja de Keys com Checkout PIX/Cartão • Rank de Caçador (+XP) • Alertas
+  </text>
+
+  <!-- Card 1: Busca & APIs -->
+  <rect x="36" y="102" width="205" height="196" rx="14" fill="#121318" stroke="#22C55E" stroke-opacity="0.4"/>
+  <text x="54" y="134" fill="#4ADE80" font-family="monospace" font-weight="800" font-size="14">01. MOTOR DE PREÇOS</text>
+  <text x="54" y="162" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Steam Storefront API</text>
+  <text x="54" y="184" fill="#E2E8F0" font-family="sans-serif" font-size="12">• GOG Catalog API</text>
+  <text x="54" y="206" fill="#E2E8F0" font-family="sans-serif" font-size="12">• CheapShark &amp; Nuuvem</text>
+  <text x="54" y="228" fill="#E2E8F0" font-family="sans-serif" font-size="12">• RAWG Metadata API</text>
+  <rect x="54" y="250" width="168" height="28" rx="6" fill="#052E16"/>
+  <text x="138" y="268" text-anchor="middle" fill="#4ADE80" font-family="monospace" font-weight="700" font-size="11">Fallback Resiliente SQLite</text>
+
+  <!-- Card 2: E-Commerce & Keys -->
+  <rect x="263" y="102" width="205" height="196" rx="14" fill="#121318" stroke="#22C55E" stroke-opacity="0.4"/>
+  <text x="281" y="134" fill="#4ADE80" font-family="monospace" font-weight="800" font-size="14">02. LOJA DE KEYS</text>
+  <text x="281" y="162" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Carrinho Persistente</text>
+  <text x="281" y="184" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Cupons (HUNTER10/20/25)</text>
+  <text x="281" y="206" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Checkout PIX (-5%) &amp; Cartão</text>
+  <text x="281" y="228" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Entrega Imediata de Key</text>
+  <rect x="281" y="250" width="168" height="28" rx="6" fill="#052E16"/>
+  <text x="365" y="268" text-anchor="middle" fill="#4ADE80" font-family="monospace" font-weight="700" font-size="11">Aba Minhas Keys Ativa</text>
+
+  <!-- Card 3: Rank de Caçador -->
+  <rect x="490" y="102" width="205" height="196" rx="14" fill="#121318" stroke="#22C55E" stroke-opacity="0.4"/>
+  <text x="508" y="134" fill="#4ADE80" font-family="monospace" font-weight="800" font-size="14">03. RANK DE CAÇADOR</text>
+  <text x="508" y="162" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Progressão Real de XP</text>
+  <text x="508" y="184" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Conquistas Desbloqueáveis</text>
+  <text x="508" y="206" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Missões Diárias (+XP)</text>
+  <text x="508" y="228" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Cupons VIP por Nível</text>
+  <rect x="508" y="250" width="168" height="28" rx="6" fill="#052E16"/>
+  <text x="592" y="268" text-anchor="middle" fill="#4ADE80" font-family="monospace" font-weight="700" font-size="11">Gamificação Interativa</text>
+
+  <!-- Card 4: Alertas & Auth -->
+  <rect x="717" y="102" width="207" height="196" rx="14" fill="#121318" stroke="#22C55E" stroke-opacity="0.4"/>
+  <text x="735" y="134" fill="#4ADE80" font-family="monospace" font-weight="800" font-size="14">04. ALERTAS &amp; AUTH</text>
+  <text x="735" y="162" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Modo Visitante &amp; Logado</text>
+  <text x="735" y="184" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Conta Demo em 1 Clique</text>
+  <text x="735" y="206" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Alertas de Preço Alvo</text>
+  <text x="735" y="228" fill="#E2E8F0" font-family="sans-serif" font-size="12">• Importação Steam Wishlist</text>
+  <rect x="735" y="250" width="170" height="28" rx="6" fill="#052E16"/>
+  <text x="820" y="268" text-anchor="middle" fill="#4ADE80" font-family="monospace" font-weight="700" font-size="11">NextAuth + Prisma ORM</text>
+</svg>
