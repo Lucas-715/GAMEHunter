@@ -2,48 +2,43 @@
 
 import React, { useEffect, useRef } from "react";
 
-type FloaterKind = "discount" | "gamepad" | "key" | "tag" | "ember";
+interface Star {
+  x: number;
+  y: number;
+  z: number; // Depth layer: 0.15 (far) to 1.0 (near)
+  radius: number;
+  baseAlpha: number;
+  twinkleSpeed: number;
+  twinklePhase: number;
+  color: string;
+  isFlare: boolean;
+}
 
-interface FloaterItem {
+interface ShootingStar {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  depth: number; // 0.3 to 1.0 for 3D parallax
-  size: number;
-  rotation: number;
-  vRot: number;
+  length: number;
   alpha: number;
-  kind: FloaterKind;
-  label: string;
-  highlight: number; // 0 to 1 when mouse is near
+  color: string;
+  active: boolean;
 }
 
-interface ClickRipple {
+interface Stardust {
   x: number;
   y: number;
-  radius: number;
-  maxRadius: number;
+  vx: number;
+  vy: number;
+  size: number;
   alpha: number;
+  color: string;
 }
-
-const DISCOUNT_LABELS = [
-  "-50%",
-  "-75%",
-  "-85%",
-  "-90%",
-  "KEY",
-  "R$",
-  "STEAM",
-  "-60%",
-  "LOW",
-  "+XP",
-];
 
 export default function InteractiveBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const ambientGlowRef = useRef<HTMLDivElement | null>(null);
-  const gridLayerRef = useRef<HTMLDivElement | null>(null);
+  const nebulaLayerRef = useRef<HTMLDivElement | null>(null);
+  const mouseNebulaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,43 +55,56 @@ export default function InteractiveBackground() {
       y: height / 2,
       targetX: width / 2,
       targetY: height / 2,
-      vx: 0,
-      vy: 0,
       lastX: width / 2,
       lastY: height / 2,
       active: false,
     };
 
-    const kinds: FloaterKind[] = [
-      "discount",
-      "gamepad",
-      "key",
-      "tag",
-      "ember",
-      "ember",
+    const starColors = [
+      "#FFFFFF",
+      "#E2E8F0",
+      "#86EFAC", // Emerald star
+      "#4ADE80", // Neon green star
+      "#A5F3FC", // Cosmic cyan
+      "#C4B5FD", // Nebula violet
     ];
-    const itemCount = Math.min(44, Math.max(24, Math.floor((width * height) / 36000)));
-    const items: FloaterItem[] = [];
-    const ripples: ClickRipple[] = [];
 
-    for (let i = 0; i < itemCount; i++) {
-      const kind = kinds[i % kinds.length];
-      const depth = 0.35 + Math.random() * 0.65;
-      items.push({
+    const starCount = Math.min(220, Math.max(120, Math.floor((width * height) / 9500)));
+    const stars: Star[] = [];
+    const shootingStars: ShootingStar[] = [];
+    const stardust: Stardust[] = [];
+
+    for (let i = 0; i < starCount; i++) {
+      const z = 0.15 + Math.pow(Math.random(), 1.4) * 0.85;
+      const isFlare = z > 0.82 && Math.random() < 0.35;
+      stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.25 * depth,
-        vy: (-0.18 - Math.random() * 0.32) * depth, // Gently rising like deals/loot
-        depth,
-        size: (kind === "ember" ? 3 : 14) * (0.7 + depth * 0.5),
-        rotation: (Math.random() - 0.5) * 0.5,
-        vRot: (Math.random() - 0.5) * 0.004,
-        alpha: (kind === "ember" ? 0.32 : 0.11) * depth,
-        kind,
-        label: DISCOUNT_LABELS[i % DISCOUNT_LABELS.length],
-        highlight: 0,
+        z,
+        radius: isFlare ? 1.8 + Math.random() * 1.1 : 0.5 + z * 1.3,
+        baseAlpha: 0.25 + z * 0.65,
+        twinkleSpeed: 0.012 + Math.random() * 0.035,
+        twinklePhase: Math.random() * Math.PI * 2,
+        color: starColors[Math.floor(Math.random() * starColors.length)],
+        isFlare,
       });
     }
+
+    const spawnShootingStar = (startX?: number, startY?: number) => {
+      const angle = (Math.PI / 6) + (Math.random() * Math.PI) / 8; // Diagonal trajectory
+      const speed = 11 + Math.random() * 7;
+      const colors = ["#4ADE80", "#38BDF8", "#FFFFFF", "#A7F3D0"];
+      shootingStars.push({
+        x: startX ?? Math.random() * width * 0.85,
+        y: startY ?? Math.random() * height * 0.45,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        length: 85 + Math.random() * 65,
+        alpha: 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        active: true,
+      });
+    };
 
     const handleResize = () => {
       if (!canvas) return;
@@ -104,198 +112,229 @@ export default function InteractiveBackground() {
       height = canvas.height = window.innerHeight;
     };
 
+    let lastDustTime = 0;
     const handleMouseMove = (e: MouseEvent) => {
-      mouse.vx = e.clientX - mouse.lastX;
-      mouse.vy = e.clientY - mouse.lastY;
-      mouse.lastX = e.clientX;
-      mouse.lastY = e.clientY;
       mouse.targetX = e.clientX;
       mouse.targetY = e.clientY;
       mouse.active = true;
+
+      const now = performance.now();
+      if (now - lastDustTime > 20) {
+        const dx = e.clientX - mouse.lastX;
+        const dy = e.clientY - mouse.lastY;
+        const speed = Math.hypot(dx, dy);
+        if (speed > 3) {
+          stardust.push({
+            x: e.clientX + (Math.random() - 0.5) * 14,
+            y: e.clientY + (Math.random() - 0.5) * 14,
+            vx: (Math.random() - 0.5) * 0.6 - dx * 0.02,
+            vy: (Math.random() - 0.5) * 0.6 - dy * 0.02,
+            size: Math.random() * 2 + 0.8,
+            alpha: Math.min(0.75, speed / 35),
+            color: Math.random() > 0.4 ? "#4ADE80" : "#A5F3FC",
+          });
+          if (stardust.length > 38) stardust.shift();
+        }
+        mouse.lastX = e.clientX;
+        mouse.lastY = e.clientY;
+        lastDustTime = now;
+      }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
-      ripples.push({
-        x: e.clientX,
-        y: e.clientY,
-        radius: 8,
-        maxRadius: 220,
-        alpha: 0.35,
-      });
+      // Spawn a shooting star near click position
+      spawnShootingStar(
+        Math.max(20, e.clientX - 120),
+        Math.max(20, e.clientY - 80)
+      );
     };
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("mousedown", handleMouseDown);
 
-    // Helper functions to draw thematic gaming icons on canvas
-    const drawGamepad = (c: CanvasRenderingContext2D, s: number) => {
-      c.beginPath();
-      c.roundRect(-s, -s * 0.65, s * 2, s * 1.3, s * 0.45);
-      c.stroke();
-      // D-pad cross
-      c.beginPath();
-      c.moveTo(-s * 0.55, 0);
-      c.lineTo(-s * 0.2, 0);
-      c.moveTo(-s * 0.375, -s * 0.18);
-      c.lineTo(-s * 0.375, s * 0.18);
-      c.stroke();
-      // Action buttons
-      c.beginPath();
-      c.arc(s * 0.42, -s * 0.1, s * 0.09, 0, Math.PI * 2);
-      c.arc(s * 0.25, s * 0.1, s * 0.09, 0, Math.PI * 2);
-      c.fill();
-    };
-
-    const drawKeyIcon = (c: CanvasRenderingContext2D, s: number) => {
-      // Key bow (ring)
-      c.beginPath();
-      c.arc(-s * 0.45, 0, s * 0.42, 0, Math.PI * 2);
-      c.stroke();
-      // Key shaft & teeth
-      c.beginPath();
-      c.moveTo(-s * 0.03, 0);
-      c.lineTo(s * 0.85, 0);
-      c.lineTo(s * 0.85, s * 0.32);
-      c.moveTo(s * 0.52, 0);
-      c.lineTo(s * 0.52, s * 0.26);
-      c.stroke();
-    };
-
-    const drawPriceTag = (c: CanvasRenderingContext2D, s: number) => {
-      c.beginPath();
-      c.moveTo(-s * 0.85, -s * 0.5);
-      c.lineTo(s * 0.25, -s * 0.5);
-      c.lineTo(s * 0.85, 0);
-      c.lineTo(s * 0.25, s * 0.5);
-      c.lineTo(-s * 0.85, s * 0.5);
-      c.closePath();
-      c.stroke();
-      // Tag hole
-      c.beginPath();
-      c.arc(-s * 0.5, 0, s * 0.12, 0, Math.PI * 2);
-      c.fill();
-    };
-
+    let tick = 0;
     const render = () => {
-      // Smooth mouse interpolation
-      mouse.x += (mouse.targetX - mouse.x) * 0.08;
-      mouse.y += (mouse.targetY - mouse.y) * 0.08;
-      mouse.vx *= 0.9;
-      mouse.vy *= 0.9;
+      tick += 1;
 
-      // Parallax offset relative to screen center
+      // Smooth cosmic camera interpolation
+      mouse.x += (mouse.targetX - mouse.x) * 0.06;
+      mouse.y += (mouse.targetY - mouse.y) * 0.06;
+
       const offsetX = (mouse.x - width / 2) / (width / 2);
       const offsetY = (mouse.y - height / 2) / (height / 2);
 
-      if (ambientGlowRef.current) {
-        ambientGlowRef.current.style.background = `
-          radial-gradient(620px circle at ${mouse.x}px ${mouse.y}px, rgba(34, 197, 94, 0.10), rgba(16, 185, 129, 0.03) 45%, transparent 75%)
+      if (nebulaLayerRef.current) {
+        nebulaLayerRef.current.style.transform = `translate3d(${-offsetX * 26}px, ${-offsetY * 26}px, 0) scale(1.06)`;
+      }
+
+      if (mouseNebulaRef.current) {
+        mouseNebulaRef.current.style.background = `
+          radial-gradient(560px circle at ${mouse.x}px ${mouse.y}px, rgba(34, 197, 94, 0.11), rgba(56, 189, 248, 0.05) 40%, rgba(124, 58, 237, 0.03) 65%, transparent 80%)
         `;
       }
 
-      if (gridLayerRef.current) {
-        gridLayerRef.current.style.transform = `translate3d(${-offsetX * 18}px, ${-offsetY * 18}px, 0)`;
+      // Periodically launch random shooting stars across the universe
+      if (Math.random() < 0.007 && shootingStars.length < 3) {
+        spawnShootingStar();
       }
 
       ctx.clearRect(0, 0, width, height);
 
-      // Draw click shockwave ripples (like activating a deal pulse)
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += (r.maxRadius - r.radius) * 0.08;
-        r.alpha *= 0.93;
-        if (r.alpha < 0.01) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.strokeStyle = `rgba(34, 197, 94, ${r.alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
+      // Draw & update multi-depth universe stars
+      const nearMouseStars: { x: number; y: number; dist: number }[] = [];
 
-      // Update & draw floating gaming/deal elements
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        it.x += it.vx;
-        it.y += it.vy;
-        it.rotation += it.vRot;
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
 
-        // Parallax render position
-        const drawX = it.x - offsetX * 28 * it.depth;
-        const drawY = it.y - offsetY * 28 * it.depth;
+        // Slow cosmic drift
+        s.x -= 0.08 * s.z;
+        s.y -= 0.03 * s.z;
+        if (s.x < -30) s.x = width + 30;
+        if (s.y < -30) s.y = height + 30;
 
-        // Wrap around edges smoothly
-        if (it.y < -50) {
-          it.y = height + 40;
-          it.x = Math.random() * width;
-        }
-        if (it.y > height + 50) it.y = -40;
-        if (it.x < -50) it.x = width + 40;
-        if (it.x > width + 50) it.x = -40;
+        // 3D Parallax based on mouse position & star depth (z)
+        let drawX = s.x - offsetX * 45 * s.z;
+        let drawY = s.y - offsetY * 45 * s.z;
 
-        // React to mouse proximity (gentle breeze + emerald illumination)
+        if (drawX < 0) drawX += width;
+        if (drawX > width) drawX -= width;
+        if (drawY < 0) drawY += height;
+        if (drawY > height) drawY -= height;
+
         const dx = drawX - mouse.x;
         const dy = drawY - mouse.y;
         const dist = Math.hypot(dx, dy);
-        const interactRadius = 185;
 
-        if (mouse.active && dist < interactRadius && dist > 1) {
-          const proximity = 1 - dist / interactRadius;
-          it.highlight += (proximity - it.highlight) * 0.18;
-          // Gentle push from cursor + subtle mouse breeze
-          it.x += (dx / dist) * proximity * 0.9 + mouse.vx * 0.015 * it.depth;
-          it.y += (dy / dist) * proximity * 0.9 + mouse.vy * 0.015 * it.depth;
-        } else {
-          it.highlight *= 0.94;
+        if (mouse.active && dist < 165 && s.z > 0.4) {
+          nearMouseStars.push({ x: drawX, y: drawY, dist });
         }
 
-        const activeAlpha = Math.min(0.65, it.alpha + it.highlight * 0.35);
-        const scale = 1 + it.highlight * 0.25;
+        const twinkle =
+          Math.sin(tick * s.twinkleSpeed + s.twinklePhase) * 0.35 + 0.65;
+        const proximityBoost =
+          mouse.active && dist < 170 ? (1 - dist / 170) * 0.45 : 0;
+        const alpha = Math.min(1, s.baseAlpha * twinkle + proximityBoost);
 
         ctx.save();
-        ctx.translate(drawX, drawY);
-        ctx.rotate(it.rotation);
-        ctx.scale(scale, scale);
-        ctx.globalAlpha = activeAlpha;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = s.color;
 
-        const color = it.highlight > 0.2 ? "#4ADE80" : "#22C55E";
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.lineWidth = 1.4;
-
-        if (it.highlight > 0.15) {
-          ctx.shadowColor = "#22C55E";
-          ctx.shadowBlur = 12 * it.highlight;
+        if (s.isFlare || proximityBoost > 0.2) {
+          ctx.shadowColor = s.color;
+          ctx.shadowBlur = 8;
         }
 
-        if (it.kind === "ember") {
+        ctx.beginPath();
+        ctx.arc(
+          drawX,
+          drawY,
+          s.radius * (1 + proximityBoost * 0.5),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+
+        // Draw 4-point cosmic flare spikes on bright foreground stars
+        if (s.isFlare || proximityBoost > 0.28) {
+          const flareLen = (s.radius * 3.8) * (1 + proximityBoost);
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = 0.7;
+          ctx.globalAlpha = alpha * 0.55;
           ctx.beginPath();
-          ctx.arc(0, 0, it.size, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (it.kind === "gamepad") {
-          drawGamepad(ctx, it.size);
-        } else if (it.kind === "key") {
-          drawKeyIcon(ctx, it.size);
-        } else if (it.kind === "tag") {
-          drawPriceTag(ctx, it.size);
-        } else if (it.kind === "discount") {
-          // Pill badge with discount text (-75%, KEY, R$, etc.)
-          const w = it.size * 2.5;
-          const h = it.size * 1.25;
-          ctx.beginPath();
-          ctx.roundRect(-w / 2, -h / 2, w, h, 5);
+          ctx.moveTo(drawX - flareLen, drawY);
+          ctx.lineTo(drawX + flareLen, drawY);
+          ctx.moveTo(drawX, drawY - flareLen);
+          ctx.lineTo(drawX, drawY + flareLen);
           ctx.stroke();
-          ctx.font = `700 ${Math.round(it.size * 0.72)}px monospace`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(it.label, 0, 0.5);
         }
 
+        ctx.restore();
+      }
+
+      // Draw subtle cosmic constellation lines between stars near the cursor
+      if (nearMouseStars.length > 1) {
+        ctx.save();
+        for (let i = 0; i < nearMouseStars.length; i++) {
+          for (let j = i + 1; j < nearMouseStars.length; j++) {
+            const a = nearMouseStars[i];
+            const b = nearMouseStars[j];
+            const pairDist = Math.hypot(a.x - b.x, a.y - b.y);
+            if (pairDist < 115) {
+              const lineAlpha =
+                (1 - pairDist / 115) *
+                (1 - Math.max(a.dist, b.dist) / 165) *
+                0.28;
+              ctx.strokeStyle = `rgba(74, 222, 128, ${lineAlpha})`;
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        }
+        ctx.restore();
+      }
+
+      // Draw & update cosmic stardust trail from mouse movement
+      for (let i = stardust.length - 1; i >= 0; i--) {
+        const d = stardust[i];
+        d.x += d.vx;
+        d.y += d.vy;
+        d.alpha *= 0.94;
+        if (d.alpha < 0.02) {
+          stardust.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = d.alpha;
+        ctx.fillStyle = d.color;
+        ctx.shadowColor = d.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw & update shooting stars / meteors
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const st = shootingStars[i];
+        st.x += st.vx;
+        st.y += st.vy;
+        st.alpha -= 0.016;
+
+        if (st.alpha <= 0 || st.x > width + 150 || st.y > height + 150) {
+          shootingStars.splice(i, 1);
+          continue;
+        }
+
+        const speed = Math.hypot(st.vx, st.vy);
+        const tailX = st.x - (st.vx / speed) * st.length;
+        const tailY = st.y - (st.vy / speed) * st.length;
+
+        const grad = ctx.createLinearGradient(st.x, st.y, tailX, tailY);
+        grad.addColorStop(0, st.color);
+        grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.save();
+        ctx.globalAlpha = st.alpha;
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(st.x, st.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+
+        // Glowing meteor head
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = st.color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
 
@@ -317,28 +356,38 @@ export default function InteractiveBackground() {
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none"
     >
-      {/* Deep Emerald Predator Ambient Nebulae */}
-      <div className="absolute -top-44 -left-44 h-[520px] w-[520px] rounded-full bg-emerald-500/8 blur-[140px]" />
-      <div className="absolute top-1/3 -right-48 h-[480px] w-[480px] rounded-full bg-green-500/6 blur-[140px]" />
-      <div className="absolute -bottom-48 left-1/3 h-[520px] w-[520px] rounded-full bg-emerald-600/8 blur-[150px]" />
-
-      {/* 3D Parallax Gaming Grid */}
+      {/* Parallax Deep Universe Nebulae & Galaxy Clouds */}
       <div
-        ref={gridLayerRef}
-        className="absolute -inset-12 opacity-[0.045] transition-transform duration-75 ease-out"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(34, 197, 94, 0.65) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(34, 197, 94, 0.65) 1px, transparent 1px)
-          `,
-          backgroundSize: "56px 56px",
-        }}
-      />
+        ref={nebulaLayerRef}
+        className="absolute -inset-16 transition-transform duration-100 ease-out"
+      >
+        {/* Emerald Nebula Cloud */}
+        <div className="absolute -top-36 left-1/4 h-[560px] w-[680px] rounded-full bg-emerald-500/10 blur-[150px] animate-pulse" />
+        {/* Deep Space Violet/Indigo Galaxy Core */}
+        <div
+          className="absolute top-1/3 -right-32 h-[540px] w-[580px] rounded-full bg-indigo-600/10 blur-[150px] animate-pulse"
+          style={{ animationDelay: "2s", animationDuration: "7s" }}
+        />
+        {/* Cosmic Cyan/Green Stardust Cloud */}
+        <div
+          className="absolute -bottom-44 left-10 h-[520px] w-[620px] rounded-full bg-teal-500/9 blur-[155px] animate-pulse"
+          style={{ animationDelay: "4s", animationDuration: "8s" }}
+        />
+        {/* Subtle Milky Way Diagonal Glow */}
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 35% at 50% 45%, rgba(16, 185, 129, 0.08), rgba(79, 70, 229, 0.05) 55%, transparent 85%)",
+            transform: "rotate(-18deg)",
+          }}
+        />
+      </div>
 
-      {/* Soft Emerald Mouse Glow */}
-      <div ref={ambientGlowRef} className="absolute inset-0" />
+      {/* Interactive Cosmic Cursor Nebula */}
+      <div ref={mouseNebulaRef} className="absolute inset-0" />
 
-      {/* Floating Deals, Keys, Gamepads & Embers Canvas */}
+      {/* 3D Starfield, Constellations & Shooting Stars Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
     </div>
   );
