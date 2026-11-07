@@ -9,7 +9,7 @@ export default function AboutPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-transparent text-foreground flex flex-col font-sans selection:bg-primary/30">
       <Navbar 
         currentView="other"
         onNavigate={(view) => {
