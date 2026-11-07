@@ -2,7 +2,8 @@
   <img src="public/logo.png" alt="GameHunter Logo" width="120" height="120" />
   <h1>GameHunter — Plataforma de Venda de Keys, Comparação de Preços & Alertas</h1>
   <p>
-    <strong>Repositório Oficial:</strong> <a href="https://github.com/Lucas-715/GAMEHunter">https://github.com/Lucas-715/GAMEHunter</a>
+    <strong>Repositório Oficial:</strong> <a href="https://github.com/Lucas-715/GAMEHunter">https://github.com/Lucas-715/GAMEHunter</a> •
+    <strong>Acesse Online:</strong> <a href="https://gamehunter.lucas-s-almeida715.workers.dev/">https://gamehunter.lucas-s-almeida715.workers.dev/</a>
   </p>
   <p>
     <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-eab308?style=for-the-badge" alt="Status: Em Desenvolvimento" />
@@ -125,4 +126,4 @@ npx prisma generate
 npm run dev
 ```
 
-Acesse no navegador: **[http://localhost:3000](http://localhost:3000)**
+Acesse no navegador: **[https://gamehunter.lucas-s-almeida715.workers.dev/](https://gamehunter.lucas-s-almeida715.workers.dev/)**
